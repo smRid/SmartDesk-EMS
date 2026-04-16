@@ -52,7 +52,7 @@ export function LoginForm() {
         <Label htmlFor="email">Email</Label>
         <Input
           id="email"
-          placeholder="Admin@gmail.com"
+          placeholder="user@gmail.com"
           type="email"
           {...form.register("email")}
         />

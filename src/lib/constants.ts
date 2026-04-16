@@ -1,16 +1,5 @@
-import type { LucideIcon } from "lucide-react";
-import {
-  Building2,
-  CalendarDays,
-  LayoutDashboard,
-  Settings,
-  UserCircle2,
-  Users2,
-  WalletCards,
-} from "lucide-react";
-
 export const APP_NAME = "ArenaDesk EMS";
-export const APP_LOGO = "Employee MS";
+export const APP_LOGO = "Arena\nDesk";
 export const APP_CURRENCY = "USD";
 export const SESSION_COOKIE_NAME = "arena_ems_session";
 
@@ -40,28 +29,36 @@ export const LEAVE_STATUSES = [
 ] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
+export type NavIcon =
+  | "building2"
+  | "calendarDays"
+  | "layoutDashboard"
+  | "settings"
+  | "userCircle2"
+  | "users2"
+  | "walletCards";
 
 export type NavItem = {
   href: string;
-  icon: LucideIcon;
+  icon: NavIcon;
   label: string;
 };
 
 export const adminNavigation: NavItem[] = [
-  { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/admin/employees", icon: Users2, label: "Employees" },
-  { href: "/admin/departments", icon: Building2, label: "Departments" },
-  { href: "/admin/leaves", icon: CalendarDays, label: "Leaves" },
-  { href: "/admin/salary", icon: WalletCards, label: "Salary" },
-  { href: "/admin/settings", icon: Settings, label: "Setting" },
+  { href: "/admin/dashboard", icon: "layoutDashboard", label: "Dashboard" },
+  { href: "/admin/employees", icon: "users2", label: "Employees" },
+  { href: "/admin/departments", icon: "building2", label: "Departments" },
+  { href: "/admin/leaves", icon: "calendarDays", label: "Leaves" },
+  { href: "/admin/salary", icon: "walletCards", label: "Salary" },
+  { href: "/admin/settings", icon: "settings", label: "Setting" },
 ];
 
 export const employeeNavigation: NavItem[] = [
-  { href: "/employee/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/employee/profile", icon: UserCircle2, label: "My Profile" },
-  { href: "/employee/leave", icon: CalendarDays, label: "Leave" },
-  { href: "/employee/salary", icon: WalletCards, label: "Salary" },
-  { href: "/employee/settings", icon: Settings, label: "Setting" },
+  { href: "/employee/dashboard", icon: "layoutDashboard", label: "Dashboard" },
+  { href: "/employee/profile", icon: "userCircle2", label: "My Profile" },
+  { href: "/employee/leave", icon: "calendarDays", label: "Leave" },
+  { href: "/employee/salary", icon: "walletCards", label: "Salary" },
+  { href: "/employee/settings", icon: "settings", label: "Setting" },
 ];
 
 export const leaveTypeLabels: Record<(typeof LEAVE_TYPES)[number], string> = {

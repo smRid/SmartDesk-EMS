@@ -2,12 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { NavItem } from "@/lib/constants";
+import {
+  Building2,
+  CalendarDays,
+  LayoutDashboard,
+  Settings,
+  UserCircle2,
+  Users2,
+  WalletCards,
+  type LucideIcon,
+} from "lucide-react";
+import type { NavItem, NavIcon } from "@/lib/constants";
 import { APP_LOGO } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 type SidebarProps = {
   items: NavItem[];
+};
+
+const iconMap: Record<NavIcon, LucideIcon> = {
+  building2: Building2,
+  calendarDays: CalendarDays,
+  layoutDashboard: LayoutDashboard,
+  settings: Settings,
+  userCircle2: UserCircle2,
+  users2: Users2,
+  walletCards: WalletCards,
 };
 
 export function Sidebar({ items }: SidebarProps) {
@@ -23,7 +43,7 @@ export function Sidebar({ items }: SidebarProps) {
         <nav className="mt-8 flex flex-1 flex-col gap-2">
           {items.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const Icon = item.icon;
+            const Icon = iconMap[item.icon];
 
             return (
               <Link
@@ -47,7 +67,7 @@ export function Sidebar({ items }: SidebarProps) {
           <div className="flex min-w-max items-center gap-2">
             {items.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              const Icon = item.icon;
+              const Icon = iconMap[item.icon];
 
               return (
                 <Link
