@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --font-body-stack: "Segoe UI", "Trebuchet MS", "Aptos", sans-serif;
+  --font-logo-stack: "Lucida Handwriting", "Brush Script MT", cursive;
+  --shell: #eef2f4;
+  --card: #ffffff;
+  --sidebar: #1c2534;
+  --sidebar-muted: #344054;
+  --sidebar-accent: #14978e;
+  --topbar: #14978e;
+  --line: #d8e0e7;
+  --soft: #f8fafb;
+  --muted: #62748a;
+  --ring: #11877f;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body-stack);
+  --font-logo: var(--font-logo-stack);
+  --color-shell: var(--shell);
+  --color-card: var(--card);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-topbar: var(--topbar);
+  --color-line: var(--line);
+  --color-soft: var(--soft);
+  --color-muted: var(--muted);
+  --color-ring: var(--ring);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-line;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-shell text-slate-900;
+    font-family: var(--font-body-stack);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    @apply outline-none;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .panel-card {
+    @apply rounded-[1.4rem] border border-white/80 bg-card shadow-[0_18px_55px_-28px_rgba(15,23,42,0.35)];
+  }
+
+  .content-grid {
+    @apply grid gap-6 xl:grid-cols-[1.6fr_1fr];
+  }
+
+  .table-shell {
+    @apply overflow-hidden rounded-[1.35rem] border border-slate-100 bg-white shadow-[0_18px_50px_-34px_rgba(15,23,42,0.25)];
+  }
+}
+
+::selection {
+  background: rgba(20, 151, 142, 0.2);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.7);
 }

@@ -1,0 +1,270 @@
+import { relations } from "drizzle-orm";
+import {
+  boolean,
+  date,
+  index,
+  integer,
+  jsonb,
+  numeric,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+export const userRoleEnum = pgEnum("user_role", ["admin", "employee"]);
+export const genderEnum = pgEnum("gender", ["male", "female", "other"]);
+export const maritalStatusEnum = pgEnum("marital_status", [
+  "single",
+  "married",
+  "divorced",
+  "widowed",
+]);
+export const employmentStatusEnum = pgEnum("employment_status", [
+  "active",
+  "on_leave",
+  "inactive",
+]);
+export const leaveTypeEnum = pgEnum("leave_type", [
+  "casual",
+  "sick",
+  "annual",
+  "emergency",
+]);
+export const leaveStatusEnum = pgEnum("leave_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name", { length: 160 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
+    passwordHash: text("password_hash").notNull(),
+    role: userRoleEnum("role").notNull().default("employee"),
+    employeeId: varchar("employee_id", { length: 32 }),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    emailIdx: uniqueIndex("users_email_idx").on(table.email),
+    employeeIdIdx: uniqueIndex("users_employee_id_idx").on(table.employeeId),
+    roleIdx: index("users_role_idx").on(table.role),
+  }),
+);
+
+export const departments = pgTable(
+  "departments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name", { length: 120 }).notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    nameIdx: uniqueIndex("departments_name_idx").on(table.name),
+  }),
+);
+
+export const employees = pgTable(
+  "employees",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    employeeId: varchar("employee_id", { length: 32 }).notNull(),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => departments.id),
+    designation: varchar("designation", { length: 140 }).notNull(),
+    dob: date("dob", { mode: "string" }).notNull(),
+    gender: genderEnum("gender").notNull(),
+    maritalStatus: maritalStatusEnum("marital_status").notNull(),
+    phone: varchar("phone", { length: 32 }).notNull(),
+    address: text("address").notNull(),
+    joiningDate: date("joining_date", { mode: "string" }).notNull(),
+    imageUrl: text("image_url"),
+    cloudinaryPublicId: text("cloudinary_public_id"),
+    baseSalary: numeric("base_salary", { precision: 12, scale: 2, mode: "number" })
+      .notNull()
+      .default(0),
+    status: employmentStatusEnum("status").notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: uniqueIndex("employees_user_id_idx").on(table.userId),
+    employeeIdIdx: uniqueIndex("employees_employee_id_idx").on(table.employeeId),
+    departmentIdx: index("employees_department_idx").on(table.departmentId),
+    statusIdx: index("employees_status_idx").on(table.status),
+  }),
+);
+
+export const leaveRequests = pgTable(
+  "leave_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    employeeId: uuid("employee_id")
+      .notNull()
+      .references(() => employees.id, { onDelete: "cascade" }),
+    leaveType: leaveTypeEnum("leave_type").notNull(),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    endDate: date("end_date", { mode: "string" }).notNull(),
+    totalDays: integer("total_days").notNull(),
+    reason: text("reason").notNull(),
+    status: leaveStatusEnum("status").notNull().default("pending"),
+    adminNote: text("admin_note"),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).notNull().defaultNow(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewedBy: uuid("reviewed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    employeeIdx: index("leave_requests_employee_idx").on(table.employeeId),
+    statusIdx: index("leave_requests_status_idx").on(table.status),
+    reviewedByIdx: index("leave_requests_reviewed_by_idx").on(table.reviewedBy),
+  }),
+);
+
+export const salaries = pgTable(
+  "salaries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    employeeId: uuid("employee_id")
+      .notNull()
+      .references(() => employees.id, { onDelete: "cascade" }),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => departments.id),
+    basicSalary: numeric("basic_salary", { precision: 12, scale: 2, mode: "number" })
+      .notNull()
+      .default(0),
+    allowance: numeric("allowance", { precision: 12, scale: 2, mode: "number" })
+      .notNull()
+      .default(0),
+    deduction: numeric("deduction", { precision: 12, scale: 2, mode: "number" })
+      .notNull()
+      .default(0),
+    totalSalary: numeric("total_salary", { precision: 12, scale: 2, mode: "number" })
+      .notNull()
+      .default(0),
+    payDate: date("pay_date", { mode: "string" }).notNull(),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    employeeIdx: index("salaries_employee_idx").on(table.employeeId),
+    departmentIdx: index("salaries_department_idx").on(table.departmentId),
+    payDateIdx: index("salaries_pay_date_idx").on(table.payDate),
+  }),
+);
+
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    action: varchar("action", { length: 160 }).notNull(),
+    entityType: varchar("entity_type", { length: 80 }).notNull(),
+    entityId: varchar("entity_id", { length: 120 }).notNull(),
+    detailsJson: jsonb("details_json").$type<Record<string, unknown> | null>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    actorIdx: index("audit_logs_actor_idx").on(table.actorUserId),
+    entityIdx: index("audit_logs_entity_idx").on(table.entityType, table.entityId),
+  }),
+);
+
+export const usersRelations = relations(users, ({ one, many }) => ({
+  employee: one(employees, {
+    fields: [users.id],
+    references: [employees.userId],
+  }),
+  reviewedLeaveRequests: many(leaveRequests, {
+    relationName: "leave_request_reviewer",
+  }),
+  createdSalaries: many(salaries, {
+    relationName: "salary_creator",
+  }),
+  auditLogs: many(auditLogs, {
+    relationName: "audit_actor",
+  }),
+}));
+
+export const departmentsRelations = relations(departments, ({ many }) => ({
+  employees: many(employees),
+  salaries: many(salaries),
+}));
+
+export const employeesRelations = relations(employees, ({ one, many }) => ({
+  user: one(users, {
+    fields: [employees.userId],
+    references: [users.id],
+  }),
+  department: one(departments, {
+    fields: [employees.departmentId],
+    references: [departments.id],
+  }),
+  leaveRequests: many(leaveRequests),
+  salaries: many(salaries),
+}));
+
+export const leaveRequestsRelations = relations(leaveRequests, ({ one }) => ({
+  employee: one(employees, {
+    fields: [leaveRequests.employeeId],
+    references: [employees.id],
+  }),
+  reviewer: one(users, {
+    fields: [leaveRequests.reviewedBy],
+    references: [users.id],
+    relationName: "leave_request_reviewer",
+  }),
+}));
+
+export const salariesRelations = relations(salaries, ({ one }) => ({
+  employee: one(employees, {
+    fields: [salaries.employeeId],
+    references: [employees.id],
+  }),
+  department: one(departments, {
+    fields: [salaries.departmentId],
+    references: [departments.id],
+  }),
+  creator: one(users, {
+    fields: [salaries.createdBy],
+    references: [users.id],
+    relationName: "salary_creator",
+  }),
+}));
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  actor: one(users, {
+    fields: [auditLogs.actorUserId],
+    references: [users.id],
+    relationName: "audit_actor",
+  }),
+}));
+
+export type User = typeof users.$inferSelect;
+export type Department = typeof departments.$inferSelect;
+export type Employee = typeof employees.$inferSelect;
+export type LeaveRequest = typeof leaveRequests.$inferSelect;
+export type Salary = typeof salaries.$inferSelect;
