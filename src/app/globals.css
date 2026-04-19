@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  color-scheme: light;
   --font-body-stack: "Segoe UI", "Trebuchet MS", "Aptos", sans-serif;
   --font-logo-stack: "Lucida Handwriting", "Brush Script MT", cursive;
   --shell: #eef2f4;
@@ -13,6 +16,22 @@
   --soft: #f8fafb;
   --muted: #62748a;
   --ring: #11877f;
+}
+
+:root[data-theme="dark"],
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --shell: #0f172a;
+  --card: #111827;
+  --sidebar: #080f1f;
+  --sidebar-muted: #1f2a3d;
+  --sidebar-accent: #0f766e;
+  --topbar: #0f766e;
+  --line: #334155;
+  --soft: #1e293b;
+  --muted: #94a3b8;
+  --ring: #2dd4bf;
 }
 
 @theme inline {
@@ -39,9 +58,22 @@
     scroll-behavior: smooth;
   }
 
+  html,
+  body {
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
+  }
+
   body {
     @apply bg-shell text-slate-900;
     font-family: var(--font-body-stack);
+  }
+
+  :root[data-theme="dark"] body,
+  .dark body,
+  body[data-theme="dark"] {
+    @apply bg-shell text-slate-100;
   }
 
   button,
@@ -54,7 +86,11 @@
 
 @layer components {
   .panel-card {
-    @apply rounded-[1.4rem] border border-white/80 bg-card shadow-[0_18px_55px_-28px_rgba(15,23,42,0.35)];
+    @apply rounded-[1.4rem] border border-white/80 bg-card shadow-[0_18px_55px_-28px_rgba(15,23,42,0.35)] transition-colors;
+  }
+
+  :where(.dark, [data-theme="dark"]) .panel-card {
+    @apply border-slate-700/80 bg-card shadow-[0_18px_55px_-30px_rgba(0,0,0,0.75)];
   }
 
   .content-grid {
@@ -62,7 +98,100 @@
   }
 
   .table-shell {
-    @apply overflow-hidden rounded-[1.35rem] border border-slate-100 bg-white shadow-[0_18px_50px_-34px_rgba(15,23,42,0.25)];
+    @apply overflow-hidden rounded-[1.35rem] border border-slate-100 bg-white shadow-[0_18px_50px_-34px_rgba(15,23,42,0.25)] transition-colors;
+  }
+
+  :where(.dark, [data-theme="dark"]) .table-shell {
+    @apply border-slate-700 bg-card shadow-[0_18px_50px_-34px_rgba(0,0,0,0.8)];
+  }
+}
+
+@layer utilities {
+  :where(.dark, [data-theme="dark"]) .bg-white {
+    background-color: var(--card);
+  }
+
+  :where(.dark, [data-theme="dark"]) .bg-slate-50,
+  :where(.dark, [data-theme="dark"]) .bg-slate-50\/80 {
+    background-color: rgb(30 41 59 / 0.78);
+  }
+
+  :where(.dark, [data-theme="dark"]) .bg-slate-100 {
+    background-color: rgb(51 65 85 / 0.82);
+  }
+
+  :where(.dark, [data-theme="dark"]) .bg-slate-200 {
+    background-color: rgb(51 65 85);
+  }
+
+  :where(.dark, [data-theme="dark"]) .hover\:bg-slate-50:hover,
+  :where(.dark, [data-theme="dark"]) .hover\:bg-slate-100:hover,
+  :where(.dark, [data-theme="dark"]) .hover\:bg-slate-300:hover {
+    background-color: rgb(51 65 85);
+  }
+
+  :where(.dark, [data-theme="dark"]) .border-slate-100,
+  :where(.dark, [data-theme="dark"]) .border-slate-200,
+  :where(.dark, [data-theme="dark"]) .border-slate-300 {
+    border-color: rgb(51 65 85);
+  }
+
+  :where(.dark, [data-theme="dark"]) .text-slate-900 {
+    color: rgb(248 250 252);
+  }
+
+  :where(.dark, [data-theme="dark"]) .text-slate-800 {
+    color: rgb(226 232 240);
+  }
+
+  :where(.dark, [data-theme="dark"]) .text-slate-700,
+  :where(.dark, [data-theme="dark"]) .text-slate-600 {
+    color: rgb(203 213 225);
+  }
+
+  :where(.dark, [data-theme="dark"]) .text-slate-500 {
+    color: rgb(148 163 184);
+  }
+
+  :where(.dark, [data-theme="dark"]) .text-slate-400,
+  :where(.dark, [data-theme="dark"]) .placeholder\:text-slate-400::placeholder {
+    color: rgb(100 116 139);
+  }
+
+  :where(.dark, [data-theme="dark"]) .bg-rose-100 {
+    background-color: rgb(127 29 29 / 0.34);
+  }
+
+  :where(.dark, [data-theme="dark"]) .text-rose-700 {
+    color: rgb(252 165 165);
+  }
+
+  :where(.dark, [data-theme="dark"]) .bg-emerald-100 {
+    background-color: rgb(6 95 70 / 0.34);
+  }
+
+  :where(.dark, [data-theme="dark"]) .text-emerald-700 {
+    color: rgb(110 231 183);
+  }
+
+  :where(.dark, [data-theme="dark"]) .bg-amber-100 {
+    background-color: rgb(146 64 14 / 0.34);
+  }
+
+  :where(.dark, [data-theme="dark"]) .text-amber-700 {
+    color: rgb(252 211 77);
+  }
+
+  :where(.dark, [data-theme="dark"]) .from-white {
+    --tw-gradient-from: rgb(17 24 39);
+  }
+
+  :where(.dark, [data-theme="dark"]) .via-white {
+    --tw-gradient-via: rgb(17 24 39);
+  }
+
+  :where(.dark, [data-theme="dark"]) .to-teal-50\/60 {
+    --tw-gradient-to: rgb(19 78 74 / 0.36);
   }
 }
 
