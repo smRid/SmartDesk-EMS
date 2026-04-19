@@ -136,9 +136,9 @@ export function SalaryForm({ departments, employees }: SalaryFormProps) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-dashed border-topbar/30 bg-topbar/5 px-4 py-3 text-sm text-slate-600">
+      <div className="rounded-2xl border border-dashed border-topbar/30 bg-topbar/5 px-4 py-3 text-sm text-slate-600 dark:bg-topbar/10 dark:text-slate-300">
         Total salary preview:{" "}
-        <span className="font-semibold text-slate-900">
+        <span className="font-semibold text-slate-900 dark:text-slate-100">
           {formatCurrency(totalSalary, { currency: APP_CURRENCY })}
         </span>
       </div>

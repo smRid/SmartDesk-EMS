@@ -43,12 +43,12 @@ export default async function EmployeeDashboardPage() {
           <div className="flex items-center gap-4">
             <Avatar alt={data.profile.name} size="lg" src={data.profile.imageUrl} />
             <div>
-              <h2 className="text-3xl font-semibold text-slate-900">
+              <h2 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
                 Welcome Back
                 <br />
                 {data.profile.name.split(" ")[0]}
               </h2>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {data.profile.designation} · {data.profile.departmentName}
               </p>
             </div>

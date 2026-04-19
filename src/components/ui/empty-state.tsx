@@ -13,8 +13,12 @@ export function EmptyState({ action, description, title }: EmptyStateProps) {
         <Inbox className="size-6" />
       </div>
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-        <p className="max-w-md text-sm text-slate-500">{description}</p>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          {title}
+        </h3>
+        <p className="max-w-md text-sm text-slate-500 dark:text-slate-400">
+          {description}
+        </p>
       </div>
       {action}
     </div>

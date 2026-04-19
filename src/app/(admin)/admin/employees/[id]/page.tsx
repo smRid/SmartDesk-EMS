@@ -101,13 +101,13 @@ export default async function EmployeeDetailPage({
             <CardTitle>Snapshot</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-2xl bg-slate-50 px-4 py-4">
+            <div className="rounded-2xl bg-slate-50 px-4 py-4 dark:bg-slate-800/70">
               <p className="text-sm text-slate-500">Current Salary</p>
               <p className="text-2xl font-semibold text-slate-900">
                 {employee.baseSalary.toLocaleString()}
               </p>
             </div>
-            <div className="rounded-2xl bg-slate-50 px-4 py-4">
+            <div className="rounded-2xl bg-slate-50 px-4 py-4 dark:bg-slate-800/70">
               <p className="text-sm text-slate-500">Leave Requests</p>
               <p className="text-2xl font-semibold text-slate-900">{employee.leaveCount}</p>
             </div>

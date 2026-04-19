@@ -82,8 +82,12 @@ export default async function AdminDashboardPage() {
                       <div className="flex items-center gap-3">
                         <Avatar alt={employee.name} src={employee.imageUrl} />
                         <div>
-                          <p className="font-medium text-slate-800">{employee.name}</p>
-                          <p className="text-xs text-slate-500">{employee.designation}</p>
+                          <p className="font-medium text-slate-800 dark:text-slate-100">
+                            {employee.name}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {employee.designation}
+                          </p>
                         </div>
                       </div>
                     </TableCell>
@@ -108,23 +112,29 @@ export default async function AdminDashboardPage() {
               {data.departmentBreakdown.map((department) => (
                 <div
                   key={department.label}
-                  className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3"
+                  className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-800/70"
                 >
                   <div>
-                    <p className="font-medium text-slate-800">{department.label}</p>
-                    <p className="text-xs text-slate-500">Active employees</p>
+                    <p className="font-medium text-slate-800 dark:text-slate-100">
+                      {department.label}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Active employees
+                    </p>
                   </div>
                   <p className="text-xl font-semibold text-topbar">{department.value}</p>
                 </div>
               ))}
             </div>
 
-            <div className="space-y-3 border-t border-slate-100 pt-4">
-              <h3 className="text-sm font-semibold text-slate-700">Salary Snapshot</h3>
+            <div className="space-y-3 border-t border-slate-100 pt-4 dark:border-slate-700">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Salary Snapshot
+              </h3>
               {data.salaryTrend.map((item) => (
                 <div key={item.label} className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">{item.label}</span>
-                  <span className="font-medium text-slate-800">
+                  <span className="text-slate-500 dark:text-slate-400">{item.label}</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-100">
                     {item.total.toLocaleString()}
                   </span>
                 </div>
@@ -153,8 +163,12 @@ export default async function AdminDashboardPage() {
                 <TableRow key={leave.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium text-slate-800">{leave.employeeName}</p>
-                      <p className="text-xs text-slate-500">{leave.employeeCode}</p>
+                      <p className="font-medium text-slate-800 dark:text-slate-100">
+                        {leave.employeeName}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {leave.employeeCode}
+                      </p>
                     </div>
                   </TableCell>
                   <TableCell>{leaveTypeLabels[leave.leaveType]}</TableCell>

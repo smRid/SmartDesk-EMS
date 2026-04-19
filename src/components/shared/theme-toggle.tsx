@@ -83,7 +83,7 @@ export function ThemeToggle() {
     <Button
       aria-label={label}
       aria-pressed={isDark}
-      className="h-9 rounded-lg bg-sidebar/40 px-3 text-white hover:bg-sidebar/60"
+      className="h-9 cursor-pointer rounded-lg bg-sidebar/40 px-3 text-white hover:bg-sidebar/60"
       onClick={handleToggle}
       size="sm"
       title={label}
