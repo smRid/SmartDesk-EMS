@@ -43,12 +43,14 @@ export default function RootLayout({
       data-theme="light"
       suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body
         className="flex min-h-full flex-col bg-shell font-sans text-slate-900"
         data-theme="light"
         suppressHydrationWarning
       >
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {children}
         <ToasterProvider />
       </body>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { useLayoutEffect, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 
 const THEME_STORAGE_KEY = "arenadesk-theme";
@@ -74,6 +74,15 @@ export function ThemeToggle() {
   const theme = useSyncExternalStore(subscribeToTheme, readTheme, () => "light");
   const isDark = theme === "dark";
   const label = isDark ? "Switch to light mode" : "Switch to dark mode";
+
+  useLayoutEffect(() => {
+    try {
+      const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+      applyTheme(storedTheme === "dark" ? "dark" : "light");
+    } catch {
+      applyTheme("light");
+    }
+  }, []);
 
   function handleToggle() {
     setTheme(isDark ? "light" : "dark");
