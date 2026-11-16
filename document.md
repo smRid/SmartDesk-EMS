@@ -1,7 +1,8 @@
 ARENA DESK EMS
 PROFESSIONAL PROJECT DOCUMENTATION
 
-Document version: 1.0
+Document version: 1.1
+Last updated: 16 November 2026
 Project name: ArenaDesk EMS
 Project type: Employee Management System
 Primary users: Admin and Employee
@@ -30,6 +31,10 @@ The system was built to provide a clean operational workflow for:
 - secure role-based login and session handling
 - profile and password management
 
+The public `/login` route also serves as the responsive product landing page.
+It introduces the platform, summarizes its core capabilities, and connects
+directly to the secure server-side authentication flow.
+
 The user interface follows a dashboard-style layout inspired by the
 provided UI references:
 
@@ -39,6 +44,10 @@ provided UI references:
 - white content cards
 - clear table-based data presentation
 - simple, professional, business-oriented layout
+
+The landing and login experience uses a responsive teal and navy enterprise
+design. It is optimized for desktop, tablet, and phone layouts down to a
+320-pixel viewport, with accessible 44-pixel navigation and form targets.
 
 
 ======================================================================
@@ -92,6 +101,10 @@ Platform-level features:
 - image upload support using Cloudinary
 - toast feedback using Sonner
 - audit log structure for change tracking
+- responsive public landing and login page
+- light and dark theme support with persisted local preference
+- login attempt rate limiting
+- accessible validation messages and password visibility control
 
 
 ======================================================================
@@ -100,7 +113,7 @@ Platform-level features:
 
 Frontend and framework:
 
-- Next.js 16
+- Next.js 16.4.6
 - React 19
 - TypeScript
 - Tailwind CSS v4
@@ -117,6 +130,7 @@ Backend and security:
 - jose for session token signing and verification
 - bcrypt for password hashing
 - middleware for role-based access enforcement
+- in-memory login rate limiting
 
 Database and data layer:
 
@@ -133,6 +147,14 @@ Validation and forms:
 Uploads:
 
 - Cloudinary
+
+Dependency and tooling status:
+
+- Next.js and eslint-config-next are aligned at 16.4.6-compatible releases
+- Zod is constrained to a patched 4.6.x release
+- npm overrides keep transitive esbuild and minimatch dependencies patched
+- bcrypt and esbuild install scripts are explicitly approved in package.json
+- the current lockfile audits with zero known npm vulnerabilities
 
 
 ======================================================================
@@ -166,8 +188,11 @@ Important folders and files:
 - README.md
   Quick-start guide.
 
-- document.txt
+- document.md
   This full operational documentation.
+
+- .env.example
+  Safe environment-variable template without production secrets.
 
 
 ======================================================================
@@ -236,6 +261,16 @@ These components are in:
 
 - src/components/ui
 - src/components/layout
+
+The public landing/login page was later rebuilt as a responsive enterprise
+hero with:
+
+- compact EMS branding and navigation
+- product overview and capability list
+- prominent backend-connected login card
+- responsive stacking below wide desktop layouts
+- accessible password reveal control and field errors
+- decorative background treatment without external image dependencies
 
 Step 5. Database design
 
@@ -309,6 +344,17 @@ Before running the project, confirm `.env` contains:
 - ADMIN_EMAIL
 - ADMIN_PASSWORD
 - ENCRYPTION_KEY
+- NODE_ENV
+
+Validation requirements:
+
+- `NEXTAUTH_SECRET` must contain at least 32 characters
+- `ENCRYPTION_KEY` must contain at least 32 characters
+- `ADMIN_PASSWORD` must contain at least 8 characters
+- `NEXTAUTH_URL` and `NEXT_PUBLIC_APP_URL` must be valid URLs
+- `NODE_ENV` must be `development`, `test`, or `production`
+- when `NEXTAUTH_URL` is omitted at runtime, the application falls back to
+  `NEXT_PUBLIC_APP_URL`
 
 7.2 First-time setup
 
@@ -330,6 +376,9 @@ Open:
 
 - npm run lint
   Runs ESLint checks.
+
+- npm run type-check
+  Runs TypeScript validation without generating output files.
 
 - npm run build
   Creates a production build.
@@ -362,16 +411,18 @@ Open:
 8.1 Login flow
 
 1. User opens `/login`
-2. User enters email and password
-3. Form validates required fields
-4. Server validates email format and password length
-5. Database checks whether the account exists
-6. bcrypt verifies the password hash
-7. If valid:
+2. The responsive landing page presents the EMS overview and login card
+3. User enters email and password
+4. Form validates required fields
+5. Server validates email format and password length
+6. Login rate limiting checks the client/email attempt key
+7. Database checks whether the account exists and is active
+8. bcrypt verifies the password hash
+9. If valid:
    - session token is created
    - session cookie is saved
    - redirect happens by role
-8. If invalid:
+10. If invalid:
    - login fails
    - error message is shown
 
@@ -1105,6 +1156,14 @@ Seed behavior is idempotent in a practical sense:
 - it checks for existing employees by email and user mapping
 - it avoids reseeding leave or salary if those tables already contain data
 
+Important admin credential behavior:
+
+- the seed script looks up an existing admin by the current `ADMIN_EMAIL`
+- it does not automatically rename or reset an older admin when `.env`
+  credentials change after the first seed
+- changing `ADMIN_EMAIL` or `ADMIN_PASSWORD` therefore requires an explicit,
+  reviewed database credential synchronization or a fresh development database
+
 
 ======================================================================
 12. HOW TO HANDLE DATABASE OPERATIONS SAFELY
@@ -1122,6 +1181,7 @@ Recommended rules for database management:
 
 Recommended operational habits:
 
+- run `npm run type-check` before deployment
 - run `npm run lint` before deployment
 - run `npm run build` before deployment
 - keep migration history committed to git
@@ -1276,12 +1336,14 @@ This section explains what to do when something goes wrong.
 Checklist:
 
 1. Confirm `.env` contains correct `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
-2. Confirm database has seeded data by running `npm run db:seed`.
-3. Confirm password is correct:
+2. Confirm the admin email stored in Neon matches `ADMIN_EMAIL`.
+3. Confirm database has seeded data by running `npm run db:seed`.
+4. Remember that reseeding does not update an older admin with a different email.
+5. Confirm password is correct:
    - admin uses `.env` admin password
    - seeded employee users use `employee123`
-4. Confirm `NEXTAUTH_SECRET` is set.
-5. Restart the dev server after `.env` changes.
+6. Confirm `NEXTAUTH_SECRET` is set and is at least 32 characters.
+7. Restart the dev server after `.env` changes.
 
 
 ----------------------------------------------------------------------
@@ -1374,10 +1436,11 @@ Checklist:
 Checklist:
 
 1. run `npm run lint`
-2. run `npm run build`
-3. confirm `.env` is valid
-4. confirm dependencies are installed
-5. confirm TypeScript errors are resolved
+2. run `npm run type-check`
+3. run `npm run build`
+4. confirm `.env` is valid
+5. confirm dependencies are installed
+6. confirm TypeScript errors are resolved
 
 
 ======================================================================
@@ -1390,8 +1453,9 @@ Daily or before deployment:
 
 1. pull latest code
 2. install dependencies if needed
-3. run lint
-4. run build
+3. run `npm run type-check`
+4. run `npm run lint`
+5. run `npm run build`
 
 When schema changes:
 
@@ -1432,12 +1496,15 @@ Production checklist:
 2. confirm production database URL
 3. confirm Cloudinary credentials
 4. set `NEXTAUTH_URL` to production domain
-5. run `npm run build`
-6. apply migrations to production DB
-7. verify login flow
-8. verify admin routes
-9. verify employee routes
-10. verify uploads and dashboard data
+5. set `NEXT_PUBLIC_APP_URL` to the production domain
+6. run `npm run type-check`
+7. run `npm run lint`
+8. run `npm run build`
+9. apply migrations to production DB
+10. verify login flow
+11. verify admin routes
+12. verify employee routes
+13. verify uploads and dashboard data
 
 Production caution:
 
@@ -1486,6 +1553,10 @@ Run locally:
 Lint:
 
 - npm run lint
+
+Type-check:
+
+- npm run type-check
 
 Production build:
 
