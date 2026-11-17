@@ -1,6 +1,5 @@
-import { Badge } from "@/components/ui/badge";
-import { statusTone } from "@/lib/utils";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export function StatusChip({ label }: { label: string }) {
-  return <Badge variant={statusTone(label)}>{label}</Badge>;
+  return <StatusBadge label={label} />;
 }

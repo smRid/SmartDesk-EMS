@@ -1,9 +1,9 @@
-ARENA DESK EMS
+SMART DESK EMS
 PROFESSIONAL PROJECT DOCUMENTATION
 
 Document version: 1.1
 Last updated: 16 November 2026
-Project name: ArenaDesk EMS
+Project: SmartDesk EMS
 Project type: Employee Management System
 Primary users: Admin and Employee
 Framework: Next.js App Router
@@ -15,8 +15,7 @@ ORM: Drizzle ORM
 ======================================================================
 1. PROJECT OVERVIEW
 ======================================================================
-
-ArenaDesk EMS is a full-stack employee management system designed for
+SmartDesk EMS is a full-stack employee management system designed for
 organization-level staff administration. It supports two primary roles:
 
 1. Admin
@@ -1582,8 +1581,7 @@ Open Drizzle Studio:
 ======================================================================
 19. FINAL SUMMARY
 ======================================================================
-
-ArenaDesk EMS is a structured, production-style employee management system
+SmartDesk EMS is a structured, production-style employee management system
 built with a modern full-stack architecture.
 
 Its strongest implementation points are:

@@ -3,10 +3,13 @@ import { Search } from "lucide-react";
 import { DeleteEmployeeButton } from "@/components/shared/delete-employee-button";
 import { PageHeader } from "@/components/layout/page-header";
 import { Avatar } from "@/components/ui/avatar";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
+import { DataTableShell } from "@/components/ui/data-table-shell";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { SearchFilterBar } from "@/components/ui/search-filter-bar";
 import {
   Table,
   TableBody,
@@ -43,20 +46,25 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
           </Button>
         }
         description="Search by employee ID or name, then drill into each profile."
+        breadcrumbs={<Breadcrumbs items={[{ label: "Employees" }]} />}
+        eyebrow="People operations"
         title="Manage Employees"
       />
 
-      <form className="panel-card flex flex-col gap-3 p-4 md:flex-row" method="GET">
+      <SearchFilterBar method="GET">
         <div className="relative flex-1">
+          <label className="sr-only" htmlFor="employee-search">Search employees</label>
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <Input
             className="pl-9"
             defaultValue={query}
+            id="employee-search"
             name="q"
             placeholder="Search by Employee ID"
           />
         </div>
-        <Select className="md:w-56" defaultValue={departmentId} name="department">
+        <label className="sr-only" htmlFor="employee-department">Filter by department</label>
+        <Select className="md:w-56" defaultValue={departmentId} id="employee-department" name="department">
           <option value="all">All Departments</option>
           {departmentOptions.map((department) => (
             <option key={department.id} value={department.id}>
@@ -67,7 +75,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
         <Button type="submit" variant="outline">
           Filter
         </Button>
-      </form>
+      </SearchFilterBar>
 
       {employees.length === 0 ? (
         <EmptyState
@@ -80,7 +88,9 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
           title="No employees found"
         />
       ) : (
+        <DataTableShell description={`${employees.length} employee${employees.length === 1 ? "" : "s"} in the current result`} title="Employee directory">
         <Table>
+          <caption className="sr-only">Employee directory results</caption>
           <TableHeader>
             <TableRow>
               <TableHead>S No</TableHead>
@@ -126,6 +136,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
             ))}
           </TableBody>
         </Table>
+        </DataTableShell>
       )}
     </div>
   );

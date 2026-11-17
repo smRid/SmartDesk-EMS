@@ -111,7 +111,7 @@ export default async function LoginPage() {
 
         <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-8 px-4 pb-24 pt-8 sm:px-7 sm:pb-28 sm:pt-10 md:px-10 md:pt-12 xl:min-h-[calc(100vh-4rem)] xl:grid-cols-[1.08fr_0.92fr] xl:grid-rows-[auto_1fr] xl:content-center xl:items-start xl:gap-x-20 xl:gap-y-7 xl:py-16">
           <section aria-labelledby="hero-title" className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#dcf7f3] px-3.5 py-2 text-xs font-bold text-[#087d73] dark:bg-teal-950/70 dark:text-teal-200">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#dcf7f3] px-3.5 py-2 text-xs font-bold text-[#075f60] dark:bg-teal-950/70 dark:text-teal-200">
               <Sparkles className="size-3.5" aria-hidden="true" />
               Streamline your workforce
             </div>

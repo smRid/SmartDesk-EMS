@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Avatar } from "@/components/ui/avatar";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
@@ -43,6 +44,8 @@ export default async function AdminDashboardPage() {
           </div>
         }
         description="Keep an eye on staffing, payroll, and leave activity from one place."
+        breadcrumbs={<Breadcrumbs items={[{ label: "Dashboard" }]} />}
+        eyebrow="Workspace overview"
         title="Admin Dashboard"
       />
 
@@ -55,9 +58,9 @@ export default async function AdminDashboardPage() {
           value={data.monthlyPayrollFormatted}
         />
         <StatCard icon={CalendarClock} title="Total Leave Requests" value={data.totalLeaves} />
-        <StatCard icon={BadgeCheck} title="Approved Leaves" value={data.approvedLeaves} />
-        <StatCard icon={Clock3} title="Pending Leaves" value={data.pendingLeaves} />
-        <StatCard icon={XCircle} title="Rejected Leaves" value={data.rejectedLeaves} />
+        <StatCard icon={BadgeCheck} title="Approved Leaves" value={data.approvedLeaves} variant="success" />
+        <StatCard icon={Clock3} title="Pending Leaves" value={data.pendingLeaves} variant="warning" />
+        <StatCard icon={XCircle} title="Rejected Leaves" value={data.rejectedLeaves} variant="danger" />
       </div>
 
       <div className="content-grid">
@@ -67,6 +70,7 @@ export default async function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Table>
+              <caption className="sr-only">Most recently added employees</caption>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -150,6 +154,7 @@ export default async function AdminDashboardPage() {
         </CardHeader>
         <CardContent>
           <Table>
+            <caption className="sr-only">Most recent leave requests</caption>
             <TableHeader>
               <TableRow>
                 <TableHead>Employee</TableHead>
