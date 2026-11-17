@@ -4,7 +4,7 @@ export function FormError({ id, message }: { id?: string; message?: string }) {
   }
 
   return (
-    <p className="text-sm text-rose-500" id={id} role="alert">
+    <p className="text-sm font-medium text-rose-700 dark:text-rose-300" id={id} role="alert">
       {message}
     </p>
   );

@@ -3,6 +3,7 @@
 import { Moon, Sun } from "lucide-react";
 import { useLayoutEffect, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const THEME_STORAGE_KEY = "arenadesk-theme";
 
@@ -70,7 +71,7 @@ function setTheme(nextTheme: Theme) {
   notifyThemeListeners();
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ className, compact = false }: { className?: string; compact?: boolean }) {
   const theme = useSyncExternalStore(subscribeToTheme, readTheme, () => "light");
   const isDark = theme === "dark";
   const label = isDark ? "Switch to light mode" : "Switch to dark mode";
@@ -92,7 +93,11 @@ export function ThemeToggle() {
     <Button
       aria-label={label}
       aria-pressed={isDark}
-      className="h-9 cursor-pointer rounded-lg bg-sidebar/40 px-3 text-white hover:bg-sidebar/60"
+      className={cn(
+        "h-11 w-11 cursor-pointer rounded-lg bg-sidebar/40 px-0 text-white hover:bg-sidebar/60",
+        !compact && "lg:h-9 lg:w-auto lg:px-3",
+        className,
+      )}
       onClick={handleToggle}
       size="sm"
       title={label}
@@ -100,7 +105,7 @@ export function ThemeToggle() {
       variant="ghost"
     >
       {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-      <span className="hidden sm:inline">{isDark ? "Light" : "Dark"}</span>
+      <span className={compact ? "sr-only" : "hidden lg:inline"}>{isDark ? "Light" : "Dark"}</span>
       <span className="sr-only">{label}</span>
     </Button>
   );

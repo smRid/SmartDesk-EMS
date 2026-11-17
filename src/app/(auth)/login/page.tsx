@@ -1,42 +1,49 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import {
-  BarChart3,
-  CalendarDays,
+  ArrowRight,
+  Building2,
+  CalendarCheck2,
+  Check,
+  Files,
+  LayoutDashboard,
   ShieldCheck,
-  Sparkles,
   UsersRound,
+  WalletCards,
 } from "lucide-react";
 import { LoginForm } from "@/components/forms/login-form";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { getCurrentSession, getDashboardRedirect } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Welcome",
+  title: "Sign in",
   description:
-    "Secure employee management for teams, leave, payroll, and performance.",
+    "Access the ArenaDesk employee management workspace for people, leave, and salary records.",
 };
 
 const features = [
   {
-    description: "Centralized, up-to-date employee information",
+    description: "Keep employee profiles, departments, and employment details organized.",
     icon: UsersRound,
-    title: "Employee Records",
+    title: "Employee records",
   },
   {
-    description: "Track requests, schedules, and team availability",
-    icon: CalendarDays,
-    title: "Attendance & Leave",
+    description: "Submit, review, and track leave requests from one shared workflow.",
+    icon: CalendarCheck2,
+    title: "Leave workflows",
   },
   {
-    description: "Turn workforce data into clearer decisions",
-    icon: BarChart3,
-    title: "Performance Insights",
+    description: "Maintain salary entries and let employees review their own history.",
+    icon: WalletCards,
+    title: "Salary history",
   },
-  {
-    description: "Protected access for every role in your organization",
-    icon: ShieldCheck,
-    title: "Secure & Reliable",
-  },
+] as const;
+
+const previewNavigation = [
+  { icon: LayoutDashboard, label: "Dashboard" },
+  { icon: UsersRound, label: "Employees" },
+  { icon: Building2, label: "Departments" },
+  { icon: CalendarCheck2, label: "Leave requests" },
 ] as const;
 
 export default async function LoginPage() {
@@ -47,144 +54,186 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#f7fcfd] text-[#082c55] dark:bg-[#071723] dark:text-slate-100">
-      <header className="relative z-20 border-b border-slate-100/90 bg-white/95 dark:border-slate-800 dark:bg-[#091b28]/95">
+    <div className="min-h-screen overflow-hidden bg-[#f8fafc] text-slate-950 dark:bg-[#08111f] dark:text-slate-100">
+      <header className="relative z-20 border-b border-slate-200/90 bg-white dark:border-slate-800 dark:bg-[#0b1524]">
         <nav
           aria-label="Main navigation"
-          className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-2 px-4 sm:gap-5 sm:px-7 lg:px-10"
+          className="mx-auto flex min-h-16 w-full max-w-[90rem] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10"
         >
           <a
             aria-label="ArenaDesk EMS home"
-            className="flex min-h-11 shrink-0 items-center gap-2 focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-[#149b91] focus-visible:ring-offset-4 sm:gap-2.5"
+            className="flex min-h-11 items-center gap-3 rounded-lg focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
             href="#home"
           >
-            <span className="grid size-8 place-items-center rounded-[0.65rem] bg-[#149b91] text-white shadow-[0_8px_20px_-10px_rgba(20,155,145,0.8)] sm:size-9 sm:rounded-[0.7rem]">
-              <Sparkles className="size-[1.15rem]" aria-hidden="true" />
+            <span className="grid size-9 place-items-center rounded-xl bg-[#0f766e] text-sm font-black tracking-tight text-white shadow-[0_10px_24px_-12px_rgba(15,118,110,0.8)]">
+              AD
             </span>
-            <span className="text-lg font-black tracking-[-0.04em] sm:text-xl">EMS</span>
-            <span className="hidden border-l border-slate-200 pl-3 text-xs font-medium tracking-normal text-[#4c647e] dark:border-slate-700 dark:text-slate-300 lg:inline">
-              Employee Management System
+            <span>
+              <span className="block text-sm font-extrabold leading-4 tracking-[-0.025em] text-slate-950 dark:text-white">
+                ArenaDesk
+              </span>
+              <span className="block text-[0.625rem] font-bold uppercase leading-4 tracking-[0.16em] text-slate-500 dark:text-slate-400 max-[399px]:hidden">
+                Employee management
+              </span>
             </span>
           </a>
 
-          <div className="flex items-center gap-2 text-[11px] font-semibold text-[#334e6a] dark:text-slate-300 sm:gap-5 sm:text-sm">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <a
-              className="inline-flex min-h-11 min-w-11 items-center justify-center border-b-2 border-[#149b91] py-5 text-[#087d73]"
-              href="#home"
+              className="hidden min-h-11 items-center px-2 text-sm font-semibold text-slate-600 transition-colors hover:text-teal-800 focus-visible:rounded-lg dark:text-slate-300 dark:hover:text-teal-300 sm:inline-flex"
+              href="#capabilities"
             >
-              Home
+              Capabilities
             </a>
+            <div className="rounded-lg bg-slate-900 dark:bg-slate-800">
+              <ThemeToggle />
+            </div>
             <a
-              className="inline-flex min-h-11 min-w-11 items-center justify-center py-5 transition-colors hover:text-[#087d73]"
-              href="#features"
-            >
-              Features
-            </a>
-            <a
-              className="hidden min-h-11 min-w-11 items-center justify-center py-5 transition-colors hover:text-[#087d73] lg:inline-flex"
-              href="#about"
-            >
-              About
-            </a>
-            <a
-              className="hidden min-h-11 min-w-11 items-center justify-center py-5 transition-colors hover:text-[#087d73] xl:inline-flex"
-              href="mailto:support@arenadesk.com"
-            >
-              Support
-            </a>
-            <a
-              className="inline-flex min-h-11 items-center rounded-lg bg-[#087d73] px-3 py-2 text-white transition-colors hover:bg-[#075f60] focus-visible:ring-2 focus-visible:ring-[#149b91] focus-visible:ring-offset-2 dark:bg-teal-700 dark:hover:bg-teal-600"
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-[#0f766e] px-3.5 text-sm font-bold text-white transition-colors hover:bg-[#115e59] focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
               href="#sign-in"
             >
               Sign in
+              <ArrowRight className="size-4 max-[359px]:hidden" aria-hidden="true" />
             </a>
           </div>
         </nav>
       </header>
 
-      <main
-        className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden bg-[radial-gradient(circle_at_76%_8%,rgba(186,235,238,0.68),transparent_38%),linear-gradient(118deg,#ffffff_0%,#f6fcfd_52%,#e7f7f9_100%)] dark:bg-[radial-gradient(circle_at_76%_8%,rgba(15,118,110,0.24),transparent_38%),linear-gradient(118deg,#071723_0%,#0b1f2d_56%,#0c2933_100%)]"
-        id="home"
-      >
-        <div className="pointer-events-none absolute left-[38%] top-24 hidden size-[32rem] rounded-full bg-[radial-gradient(circle,rgba(177,235,229,0.48),transparent_68%)] blur-xl sm:block" />
-        <div className="pointer-events-none absolute inset-x-[-8%] bottom-[-11rem] h-64 rotate-[-2deg] rounded-[50%_50%_0_0/45%_55%_0_0] bg-gradient-to-r from-[#159f95] to-[#63d1c8] opacity-80 dark:opacity-45" />
+      <main id="home">
+        <div className="relative isolate overflow-hidden border-b border-slate-200 bg-[#f8fafc] dark:border-slate-800 dark:bg-[#08111f]">
+          <div className="pointer-events-none absolute inset-0 opacity-[0.42] dark:opacity-[0.18]" aria-hidden="true">
+            <div className="absolute inset-y-0 right-[-16rem] w-[42rem] rotate-12 border-l border-teal-500/20 bg-[linear-gradient(135deg,transparent_34%,rgba(13,148,136,0.08)_34%,rgba(13,148,136,0.08)_66%,transparent_66%)]" />
+            <div className="absolute left-[8%] top-[-12rem] size-[28rem] rounded-full border-[5rem] border-slate-200/60 dark:border-slate-700/40" />
+          </div>
 
-        <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-8 px-4 pb-24 pt-8 sm:px-7 sm:pb-28 sm:pt-10 md:px-10 md:pt-12 xl:min-h-[calc(100vh-4rem)] xl:grid-cols-[1.08fr_0.92fr] xl:grid-rows-[auto_1fr] xl:content-center xl:items-start xl:gap-x-20 xl:gap-y-7 xl:py-16">
-          <section aria-labelledby="hero-title" className="min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#dcf7f3] px-3.5 py-2 text-xs font-bold text-[#075f60] dark:bg-teal-950/70 dark:text-teal-200">
-              <Sparkles className="size-3.5" aria-hidden="true" />
-              Streamline your workforce
-            </div>
+          <div className="relative mx-auto grid w-full max-w-[90rem] gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,1fr)_27rem] lg:items-center lg:gap-14 lg:px-10 lg:py-20 xl:grid-cols-[minmax(0,1.08fr)_29rem]">
+            <section aria-labelledby="hero-title" className="order-2 min-w-0 lg:order-1">
+              <div className="inline-flex min-h-8 items-center gap-2 border-l-2 border-teal-600 pl-3 text-xs font-extrabold uppercase tracking-[0.16em] text-teal-800 dark:text-teal-300">
+                <ShieldCheck className="size-4" aria-hidden="true" />
+                One workspace. Clear responsibilities.
+              </div>
 
-            <h1
-              className="mt-5 max-w-2xl text-[clamp(2.25rem,11vw,2.9rem)] font-black leading-[1.02] tracking-[-0.05em] text-[#082c55] dark:text-white sm:text-[clamp(2.8rem,7vw,3.65rem)] xl:text-[clamp(3.5rem,5vw,4.5rem)] xl:leading-[0.98] xl:tracking-[-0.055em]"
-              id="hero-title"
-            >
-              Employee
-              <span className="block text-[#0d8078] dark:text-teal-300">Management System</span>
-            </h1>
+              <h1
+                className="mt-5 max-w-3xl text-[clamp(2.35rem,8.8vw,3.8rem)] font-black leading-[1.01] tracking-[-0.05em] text-[#0f172a] dark:text-white lg:text-[2.9rem] xl:text-[3.75rem] 2xl:text-[4.25rem]"
+                id="hero-title"
+              >
+                People operations,
+                <span className="block text-[#0f766e] dark:text-teal-300">kept in order.</span>
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300 sm:text-lg sm:leading-8">
+                ArenaDesk brings employee records, leave requests, and salary history into a
+                focused workspace for administrators and employees.
+              </p>
 
-            <p
-              className="mt-5 max-w-xl text-[0.95rem] leading-7 text-[#4e6782] dark:text-slate-300 sm:text-base"
-              id="about"
-            >
-              One secure workspace to manage your people, processes, leave, and payroll—so your
-              team can focus on doing its best work.
-            </p>
+              <div className="mt-8 grid max-w-3xl gap-5 border-y border-slate-200 py-6 dark:border-slate-700 sm:grid-cols-3" id="capabilities">
+                {features.map((feature) => {
+                  const Icon = feature.icon;
+                  return (
+                    <article className="flex gap-3 sm:block" key={feature.title}>
+                      <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-teal-50 text-teal-800 dark:bg-teal-950/70 dark:text-teal-200">
+                        <Icon className="size-5" aria-hidden="true" />
+                      </span>
+                      <div className="sm:mt-3">
+                        <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                          {feature.title}
+                        </h2>
+                        <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-400">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
 
-          </section>
-
-          <section
-            aria-label="Product features"
-            className="order-3 min-w-0 xl:order-none xl:col-start-1 xl:row-start-2"
-          >
-            <div className="grid gap-3 sm:gap-3.5" id="features">
-              {features.map((feature) => {
-                const Icon = feature.icon;
-                return (
-                  <article className="group flex items-center gap-3 sm:gap-3.5" key={feature.title}>
-                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#e5f7f5] text-[#078c82] transition-transform duration-300 group-hover:-translate-y-0.5 dark:bg-teal-950/70 dark:text-teal-200 motion-reduce:transition-none">
-                      <Icon className="size-5" aria-hidden="true" />
-                    </span>
-                    <div>
-                      <h2 className="text-sm font-extrabold text-[#102e4c] dark:text-slate-100">
-                        {feature.title}
-                      </h2>
-                      <p className="mt-0.5 text-xs leading-5 text-[#5b7188] dark:text-slate-400">
-                        {feature.description}
-                      </p>
+              <figure className="relative mt-9 hidden max-w-3xl overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-[0_30px_70px_-45px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900 md:block">
+                <div className="flex h-8 items-center gap-1.5 border-b border-slate-200 bg-slate-50 px-3 dark:border-slate-700 dark:bg-slate-800">
+                  <span className="size-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                  <span className="size-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                  <span className="size-2 rounded-full bg-teal-600" />
+                  <figcaption className="ml-3 text-[0.625rem] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                    Workspace preview
+                  </figcaption>
+                </div>
+                <div className="grid min-h-52 grid-cols-[10rem_1fr]">
+                  <div className="bg-[#0f172a] p-4 text-white">
+                    <p className="text-sm font-black tracking-tight">ArenaDesk</p>
+                    <div className="mt-5 space-y-1.5">
+                      {previewNavigation.map((item, index) => {
+                        const Icon = item.icon;
+                        return (
+                          <div className={`flex items-center gap-2 rounded-md px-2 py-2 text-[0.675rem] font-semibold ${index === 0 ? "bg-teal-700 text-white" : "text-slate-300"}`} key={item.label}>
+                            <Icon className="size-3.5" aria-hidden="true" />
+                            {item.label}
+                          </div>
+                        );
+                      })}
                     </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
+                  </div>
+                  <div className="p-5">
+                    <div className="flex items-end justify-between gap-4 border-b border-slate-200 pb-4 dark:border-slate-700">
+                      <div>
+                        <p className="text-[0.6rem] font-bold uppercase tracking-[0.16em] text-teal-800 dark:text-teal-300">Overview</p>
+                        <p className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">Operations workspace</p>
+                      </div>
+                      <span className="rounded-md bg-teal-50 px-2 py-1 text-[0.625rem] font-bold text-teal-800 dark:bg-teal-950/70 dark:text-teal-200">Role-aware view</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 pt-4">
+                      {["Employee records", "Leave activity", "Salary history"].map((label) => (
+                        <div className="min-h-20 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800" key={label}>
+                          <Check className="size-4 text-teal-700 dark:text-teal-300" aria-hidden="true" />
+                          <p className="mt-3 text-[0.675rem] font-bold leading-4 text-slate-700 dark:text-slate-200">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </figure>
+            </section>
 
-          <section
-            aria-labelledby="login-title"
-            className="order-2 mx-auto w-full max-w-[28rem] scroll-mt-4 rounded-[1.25rem] border border-white/90 bg-white/95 p-5 shadow-[0_28px_70px_-28px_rgba(28,73,98,0.35)] backdrop-blur-sm dark:border-slate-700/80 dark:bg-[#0d2130]/95 sm:scroll-mt-5 sm:rounded-[1.5rem] sm:p-8 xl:order-none xl:col-start-2 xl:row-span-2 xl:row-start-1 xl:my-auto xl:justify-self-end"
-            id="sign-in"
-          >
-            <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-[#dff7f4] text-[#07978b] dark:bg-teal-950/80 dark:text-teal-200">
-              <ShieldCheck className="size-7" aria-hidden="true" />
-            </div>
-            <h2
-              className="mt-4 text-center text-2xl font-black tracking-[-0.04em] text-[#082c55] dark:text-white"
-              id="login-title"
+            <section
+              aria-labelledby="login-title"
+              className="relative order-1 scroll-mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_28px_75px_-40px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-[#101b2c] sm:p-8 lg:order-2 lg:sticky lg:top-8"
+              id="sign-in"
             >
-              Welcome back
-            </h2>
-            <p className="mb-7 mt-1.5 text-center text-sm text-[#637990] dark:text-slate-400">
-              Sign in to access your EMS workspace
-            </p>
-            <LoginForm />
-            <div className="mt-6 flex items-center justify-center gap-2 border-t border-slate-100 pt-5 text-xs text-[#6a7f94] dark:border-slate-700 dark:text-slate-400">
-              <ShieldCheck className="size-3.5 text-[#149b91]" aria-hidden="true" />
-              Protected with secure, role-based access
-            </div>
-          </section>
+              <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-teal-700" aria-hidden="true" />
+              <div className="flex items-start gap-4">
+                <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-slate-900 text-white dark:bg-teal-800">
+                  <Files className="size-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-[0.65rem] font-extrabold uppercase tracking-[0.16em] text-teal-800 dark:text-teal-300">
+                    Workspace access
+                  </p>
+                  <h2 className="mt-1 text-2xl font-black tracking-[-0.035em] text-slate-950 dark:text-white" id="login-title">
+                    Welcome back
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                    Sign in with your assigned account.
+                  </p>
+                </div>
+              </div>
+
+              <div className="my-6 border-t border-slate-200 dark:border-slate-700" />
+              <LoginForm />
+
+              <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-700">
+                <div className="flex gap-3 text-xs leading-5 text-slate-600 dark:text-slate-400">
+                  <ShieldCheck className="mt-0.5 size-4 shrink-0 text-teal-700 dark:text-teal-300" aria-hidden="true" />
+                  <p>
+                    Role-aware access directs each account to its permitted workspace. Session
+                    cookies are HTTP-only.
+                  </p>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
       </main>
+
+      <footer className="bg-white px-4 py-5 text-center text-xs text-slate-500 dark:bg-[#0b1524] dark:text-slate-400 sm:px-6">
+        ArenaDesk EMS · Employee operations, organized.
+      </footer>
     </div>
   );
 }

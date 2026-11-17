@@ -6,14 +6,15 @@ import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { logoutAction } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export function LogoutButton() {
+export function LogoutButton({ className }: { className?: string }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   return (
     <Button
-      className="rounded-lg bg-sidebar/40 px-4 text-white hover:bg-sidebar/60"
+      className={cn("rounded-lg bg-sidebar/40 px-4 text-white hover:bg-sidebar/60", className)}
       onClick={() =>
         startTransition(async () => {
           const result = await logoutAction();

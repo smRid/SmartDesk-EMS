@@ -48,17 +48,17 @@ export const adminNavigation: NavItem[] = [
   { href: "/admin/dashboard", icon: "layoutDashboard", label: "Dashboard" },
   { href: "/admin/employees", icon: "users2", label: "Employees" },
   { href: "/admin/departments", icon: "building2", label: "Departments" },
-  { href: "/admin/leaves", icon: "calendarDays", label: "Leaves" },
+  { href: "/admin/leaves", icon: "calendarDays", label: "Leave Requests" },
   { href: "/admin/salary", icon: "walletCards", label: "Salary" },
-  { href: "/admin/settings", icon: "settings", label: "Setting" },
+  { href: "/admin/settings", icon: "settings", label: "Settings" },
 ];
 
 export const employeeNavigation: NavItem[] = [
-  { href: "/employee/dashboard", icon: "layoutDashboard", label: "Dashboard" },
+  { href: "/employee/dashboard", icon: "layoutDashboard", label: "My Dashboard" },
   { href: "/employee/profile", icon: "userCircle2", label: "My Profile" },
-  { href: "/employee/leave", icon: "calendarDays", label: "Leave" },
-  { href: "/employee/salary", icon: "walletCards", label: "Salary" },
-  { href: "/employee/settings", icon: "settings", label: "Setting" },
+  { href: "/employee/leave", icon: "calendarDays", label: "My Leave" },
+  { href: "/employee/salary", icon: "walletCards", label: "My Salary" },
+  { href: "/employee/settings", icon: "settings", label: "Settings" },
 ];
 
 export const leaveTypeLabels: Record<(typeof LEAVE_TYPES)[number], string> = {

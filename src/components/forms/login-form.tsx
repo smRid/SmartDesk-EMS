@@ -15,6 +15,7 @@ import { loginSchema, type LoginInput } from "@/lib/validations";
 
 export function LoginForm() {
   const router = useRouter();
+  const [authenticationError, setAuthenticationError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
   const form = useForm<LoginInput>({
@@ -26,10 +27,12 @@ export function LoginForm() {
   });
 
   const onSubmit = form.handleSubmit((values) => {
+    setAuthenticationError("");
     startTransition(async () => {
       const result = await loginAction(values);
 
       if (result.status === "error") {
+        setAuthenticationError(result.message);
         toast.error(result.message);
         Object.entries(result.fieldErrors ?? {}).forEach(([field, message]) => {
           form.setError(field as keyof LoginInput, {
@@ -49,7 +52,21 @@ export function LoginForm() {
   });
 
   return (
-    <form className="space-y-4.5" onSubmit={onSubmit}>
+    <form
+      aria-describedby={authenticationError ? "login-authentication-error" : undefined}
+      className="space-y-5"
+      noValidate
+      onSubmit={onSubmit}
+    >
+      {authenticationError ? (
+        <div
+          className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-5 text-rose-800 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-200"
+          id="login-authentication-error"
+          role="alert"
+        >
+          {authenticationError}
+        </div>
+      ) : null}
       <div className="space-y-2">
         <Label className="text-xs font-bold text-[#344e68] dark:text-slate-200" htmlFor="email">
           Email address
@@ -60,7 +77,7 @@ export function LoginForm() {
           autoComplete="username"
           className="h-12 rounded-xl border-[#d7e4eb] bg-white px-4 text-[#17324d] shadow-none placeholder:text-[#8a9aac] focus-visible:border-[#149b91] focus-visible:ring-[#149b91]/20 dark:border-slate-600 dark:bg-[#102837] dark:text-white"
           id="email"
-          placeholder="user@gmail.com"
+          placeholder="name@company.com"
           spellCheck={false}
           type="email"
           {...form.register("email")}
@@ -76,7 +93,7 @@ export function LoginForm() {
           >
             Password
           </Label>
-          <span className="text-right text-xs font-medium leading-4 text-[#698096] dark:text-slate-400 max-[359px]:hidden">
+          <span className="text-right text-xs font-medium leading-4 text-slate-700 dark:text-slate-300 max-[359px]:hidden">
             Use your assigned credentials
           </span>
         </div>
@@ -108,13 +125,17 @@ export function LoginForm() {
         <FormError id="login-password-error" message={form.formState.errors.password?.message} />
       </div>
 
-      <div className="flex items-center gap-2 rounded-xl bg-[#f2faf9] px-3 py-2.5 text-xs leading-4 text-[#587086] dark:bg-teal-950/30 dark:text-slate-300">
-        <LockKeyhole className="size-3.5 shrink-0 text-[#149b91]" aria-hidden="true" />
-        Your session is encrypted and automatically protected.
+      <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
+        <LockKeyhole
+          className="size-3.5 shrink-0 text-teal-700 dark:text-teal-300"
+          aria-hidden="true"
+        />
+        Access is limited by your assigned account role.
       </div>
 
       <Button
-        className="h-12 w-full rounded-xl bg-gradient-to-r from-[#087d73] to-[#075f60] text-sm text-white shadow-[0_10px_24px_-12px_rgba(7,95,96,0.85)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:from-[#076c65] hover:to-[#064f51] hover:shadow-[0_14px_28px_-12px_rgba(7,95,96,0.9)] motion-reduce:transition-none"
+        aria-busy={isPending}
+        className="h-12 w-full rounded-xl bg-[#0f766e] text-sm text-white shadow-[0_12px_28px_-16px_rgba(15,118,110,0.9)] transition-[background-color,box-shadow] hover:bg-[#115e59] hover:shadow-[0_16px_32px_-18px_rgba(15,118,110,0.95)] motion-reduce:transition-none"
         disabled={isPending}
         type="submit"
       >
