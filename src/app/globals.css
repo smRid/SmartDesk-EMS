@@ -112,7 +112,7 @@
 
 @layer components {
   .panel-card {
-    @apply rounded-2xl border border-line bg-card transition-colors;
+    @apply min-w-0 max-w-full rounded-2xl border border-line bg-card transition-colors;
     box-shadow: var(--shadow-card);
   }
 
@@ -121,11 +121,15 @@
   }
 
   .content-grid {
-    @apply grid gap-6 xl:grid-cols-[1.6fr_1fr];
+    @apply grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)];
+  }
+
+  .content-grid > * {
+    @apply min-w-0 max-w-full;
   }
 
   .table-shell {
-    @apply overflow-hidden rounded-2xl border border-line bg-white transition-colors;
+    @apply min-w-0 max-w-full overflow-hidden rounded-2xl border border-line bg-white transition-colors;
     box-shadow: var(--shadow-card);
   }
 

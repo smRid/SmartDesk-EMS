@@ -48,8 +48,8 @@ export function AppShell({ children, items, session }: AppShellProps) {
       <Sidebar collapsed={collapsed} items={items} mobileOpen={mobileOpen} onCollapseToggle={toggleCollapsed} onMobileClose={() => setMobileOpen(false)} />
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <Topbar items={items} mobileMenuOpen={mobileOpen} onMobileMenuOpen={() => setMobileOpen(true)} session={session} />
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8" id="main-content" tabIndex={-1}>
-          <div className="mx-auto w-full max-w-[100rem]">{children}</div>
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8" id="main-content" tabIndex={-1}>
+          <div className="mx-auto min-w-0 w-full max-w-[100rem]">{children}</div>
         </main>
       </div>
     </div>

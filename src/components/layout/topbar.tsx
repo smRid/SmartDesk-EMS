@@ -91,14 +91,13 @@ export function Topbar({ items, mobileMenuOpen, onMobileMenuOpen, session }: { i
 
         <ThemeToggle className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" compact />
         <div className="relative" ref={menuRef}>
-          <button aria-expanded={profileOpen} aria-haspopup="menu" className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pr-2 text-left hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-teal-700 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" onClick={() => setProfileOpen((open) => !open)} ref={profileButtonRef} type="button">
+          <button aria-expanded={profileOpen} aria-haspopup="menu" aria-label={`Open profile menu for ${session.name}`} className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pr-2 text-left hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-teal-700 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800" onClick={() => setProfileOpen((open) => !open)} ref={profileButtonRef} type="button">
             <Avatar alt={session.name} size="sm" src={session.imageUrl} />
             <span className="hidden min-w-0 max-w-36 sm:block">
               <span className="block truncate text-xs font-bold text-slate-900 dark:text-white">{session.name}</span>
               <span className="block truncate text-[0.625rem] font-semibold capitalize text-slate-500 dark:text-slate-400">{session.role}</span>
             </span>
             <ChevronDown aria-hidden="true" className={cn("hidden size-4 text-slate-400 transition-transform sm:block", profileOpen && "rotate-180")} />
-            <span className="sr-only">Open profile menu</span>
           </button>
 
           {profileOpen ? (
