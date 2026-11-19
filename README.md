@@ -1,4 +1,4 @@
-# ArenaDesk EMS
+# SmartDesk EMS
 
 A production-style Employee Management System built with Next.js App Router, TypeScript, Tailwind CSS, Drizzle ORM, Neon PostgreSQL, custom credentials auth, React Hook Form, Zod, Sonner, and Cloudinary.
 

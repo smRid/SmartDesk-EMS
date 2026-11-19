@@ -29,7 +29,7 @@ const departmentSeed = [
 const employeeSeed = [
   {
     name: "Asif Rahman",
-    email: "asif@arenadesk.com",
+    email: "asif@smartdesk.com",
     employeeId: "EMP-1001",
     department: "Database",
     designation: "Database Engineer",
@@ -46,7 +46,7 @@ const employeeSeed = [
   },
   {
     name: "Yousaf Karim",
-    email: "yousaf@arenadesk.com",
+    email: "yousaf@smartdesk.com",
     employeeId: "EMP-1002",
     department: "Database",
     designation: "Data Analyst",
@@ -63,7 +63,7 @@ const employeeSeed = [
   },
   {
     name: "Khalil Ahmed",
-    email: "khalil@arenadesk.com",
+    email: "khalil@smartdesk.com",
     employeeId: "EMP-1003",
     department: "IT",
     designation: "Support Specialist",
@@ -80,7 +80,7 @@ const employeeSeed = [
   },
   {
     name: "Latif Hasan",
-    email: "latif@arenadesk.com",
+    email: "latif@smartdesk.com",
     employeeId: "EMP-1004",
     department: "Logistic",
     designation: "Logistics Coordinator",
@@ -139,7 +139,7 @@ async function seedAdmin() {
   const [admin] = await db
     .insert(users)
     .values({
-      name: "ArenaDesk Admin",
+      name: "SmartDesk Admin",
       email: env.ADMIN_EMAIL.toLowerCase(),
       passwordHash,
       role: "admin",

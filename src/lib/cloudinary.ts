@@ -10,7 +10,7 @@ cloudinary.config({
 
 export async function uploadImage(
   file: File,
-  folder = "arenadesk-ems/employees",
+  folder = "smartdesk-ems/employees",
 ) {
   if (!file || file.size === 0) {
     return null;

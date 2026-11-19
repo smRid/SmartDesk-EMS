@@ -18,7 +18,7 @@ import { getCurrentSession, getDashboardRedirect } from "@/lib/auth";
 export const metadata: Metadata = {
   title: "Sign in",
   description:
-    "Access the ArenaDesk employee management workspace for people, leave, and salary records.",
+    "Access the SmartDesk employee management workspace for people, leave, and salary records.",
 };
 
 const features = [
@@ -61,7 +61,7 @@ export default async function LoginPage() {
           className="mx-auto flex min-h-16 w-full max-w-[90rem] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10"
         >
           <a
-            aria-label="ArenaDesk EMS home"
+            aria-label="SmartDesk EMS home"
             className="flex min-h-11 items-center gap-3 rounded-lg focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
             href="#home"
           >
@@ -70,7 +70,7 @@ export default async function LoginPage() {
             </span>
             <span>
               <span className="block text-sm font-extrabold leading-4 tracking-[-0.025em] text-slate-950 dark:text-white">
-                ArenaDesk
+                SmartDesk
               </span>
               <span className="block text-[0.625rem] font-bold uppercase leading-4 tracking-[0.16em] text-slate-500 dark:text-slate-400 max-[399px]:hidden">
                 Employee management
@@ -121,7 +121,7 @@ export default async function LoginPage() {
                 <span className="block text-[#0f766e] dark:text-teal-300">kept in order.</span>
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300 sm:text-lg sm:leading-8">
-                ArenaDesk brings employee records, leave requests, and salary history into a
+                SmartDesk brings employee records, leave requests, and salary history into a
                 focused workspace for administrators and employees.
               </p>
 
@@ -157,7 +157,7 @@ export default async function LoginPage() {
                 </div>
                 <div className="grid min-h-52 grid-cols-[10rem_1fr]">
                   <div className="bg-[#0f172a] p-4 text-white">
-                    <p className="text-sm font-black tracking-tight">ArenaDesk</p>
+                    <p className="text-sm font-black tracking-tight">SmartDesk</p>
                     <div className="mt-5 space-y-1.5">
                       {previewNavigation.map((item, index) => {
                         const Icon = item.icon;
@@ -232,7 +232,7 @@ export default async function LoginPage() {
       </main>
 
       <footer className="bg-white px-4 py-5 text-center text-xs text-slate-500 dark:bg-[#0b1524] dark:text-slate-400 sm:px-6">
-        ArenaDesk EMS · Employee operations, organized.
+        SmartDesk EMS · Employee operations, organized.
       </footer>
     </div>
   );

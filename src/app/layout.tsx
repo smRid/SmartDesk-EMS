@@ -5,7 +5,7 @@ import "./globals.css";
 const themeInitScript = `
 (() => {
   try {
-    const theme = window.localStorage.getItem("arenadesk-theme") === "dark" ? "dark" : "light";
+    const theme = window.localStorage.getItem("smartdesk-theme") === "dark" ? "dark" : "light";
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.dataset.theme = theme;
     document.body?.classList.toggle("dark", theme === "dark");
@@ -23,8 +23,8 @@ const themeInitScript = `
 
 export const metadata: Metadata = {
   title: {
-    default: "ArenaDesk EMS",
-    template: "%s | ArenaDesk EMS",
+    default: "SmartDesk EMS",
+    template: "%s | SmartDesk EMS",
   },
   description:
     "Production-ready employee management system with admin and employee dashboards.",

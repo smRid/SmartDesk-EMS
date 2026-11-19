@@ -56,10 +56,10 @@ function NavigationLinks({ collapsed = false, items, onNavigate }: { collapsed?:
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <Link aria-label="ArenaDesk dashboard" className={cn("flex min-h-14 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.045] px-3 focus-visible:ring-2 focus-visible:ring-teal-300", compact && "justify-center px-0")} href="/">
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-teal-700 text-xs font-black tracking-tight text-white">AD</span>
+    <Link aria-label="SmartDesk dashboard" className={cn("flex min-h-14 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.045] px-3 focus-visible:ring-2 focus-visible:ring-teal-300", compact && "justify-center px-0")} href="/">
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-teal-700 text-xs font-black tracking-tight text-white">SD</span>
       <span className={cn("min-w-0", compact && "sr-only")}>
-        <span className="block truncate text-sm font-extrabold tracking-tight text-white">ArenaDesk</span>
+        <span className="block truncate text-sm font-extrabold tracking-tight text-white">SmartDesk</span>
         <span className="block truncate text-[0.6rem] font-bold uppercase tracking-[0.14em] text-slate-400">EMS workspace</span>
       </span>
     </Link>

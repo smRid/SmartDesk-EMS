@@ -20,7 +20,7 @@ export function AppShell({ children, items, session }: AppShellProps) {
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       try {
-        setCollapsed(window.localStorage.getItem("arenadesk-sidebar-collapsed") === "true");
+        setCollapsed(window.localStorage.getItem("smartdesk-sidebar-collapsed") === "true");
       } catch {
         // Keep the expanded default when storage is unavailable.
       }
@@ -32,7 +32,7 @@ export function AppShell({ children, items, session }: AppShellProps) {
     setCollapsed((current) => {
       const next = !current;
       try {
-        window.localStorage.setItem("arenadesk-sidebar-collapsed", String(next));
+        window.localStorage.setItem("smartdesk-sidebar-collapsed", String(next));
       } catch {
         // The control still works for the current page when storage is unavailable.
       }

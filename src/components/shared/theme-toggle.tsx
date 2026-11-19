@@ -5,11 +5,11 @@ import { useLayoutEffect, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const THEME_STORAGE_KEY = "arenadesk-theme";
+const THEME_STORAGE_KEY = "smartdesk-theme";
 
 type Theme = "light" | "dark";
 
-const THEME_CHANGE_EVENT = "arenadesk-theme-change";
+const THEME_CHANGE_EVENT = "smartdesk-theme-change";
 
 function applyTheme(theme: Theme) {
   if (typeof document === "undefined") {

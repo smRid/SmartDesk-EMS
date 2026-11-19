@@ -1,7 +1,7 @@
-export const APP_NAME = "ArenaDesk EMS";
-export const APP_LOGO = "Arena\nDesk";
+export const APP_NAME = "SmartDesk EMS";
+export const APP_LOGO = "Smart\nDesk";
 export const APP_CURRENCY = "USD";
-export const SESSION_COOKIE_NAME = "arena_ems_session";
+export const SESSION_COOKIE_NAME = "smartdesk_ems_session";
 
 export const USER_ROLES = ["admin", "employee"] as const;
 export const GENDER_OPTIONS = ["male", "female", "other"] as const;
