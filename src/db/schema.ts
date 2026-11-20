@@ -38,6 +38,15 @@ export const leaveStatusEnum = pgEnum("leave_status", [
   "pending",
   "approved",
   "rejected",
+  "cancelled",
+]);
+export const leaveCycleEnum = pgEnum("leave_cycle", ["calendar_year", "anniversary_year"]);
+export const leaveLedgerEventEnum = pgEnum("leave_ledger_event", [
+  "grant",
+  "reserve",
+  "release",
+  "consume",
+  "adjustment",
 ]);
 
 export const users = pgTable(
@@ -120,6 +129,11 @@ export const leaveRequests = pgTable(
     startDate: date("start_date", { mode: "string" }).notNull(),
     endDate: date("end_date", { mode: "string" }).notNull(),
     totalDays: integer("total_days").notNull(),
+    chargeDays: numeric("charge_days", { precision: 6, scale: 2, mode: "number" }),
+    dayFraction: numeric("day_fraction", { precision: 3, scale: 2, mode: "number" }).notNull().default(1),
+    cycleStart: date("cycle_start", { mode: "string" }),
+    cycleEnd: date("cycle_end", { mode: "string" }),
+    exceptionApproved: boolean("exception_approved").notNull().default(false),
     reason: text("reason").notNull(),
     status: leaveStatusEnum("status").notNull().default("pending"),
     adminNote: text("admin_note"),
@@ -135,6 +149,78 @@ export const leaveRequests = pgTable(
     employeeIdx: index("leave_requests_employee_idx").on(table.employeeId),
     statusIdx: index("leave_requests_status_idx").on(table.status),
     reviewedByIdx: index("leave_requests_reviewed_by_idx").on(table.reviewedBy),
+  }),
+);
+
+export const leavePolicies = pgTable(
+  "leave_policies",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leaveType: leaveTypeEnum("leave_type").notNull(),
+    annualEntitlement: numeric("annual_entitlement", { precision: 6, scale: 2, mode: "number" }).notNull().default(0),
+    cycleType: leaveCycleEnum("cycle_type").notNull().default("calendar_year"),
+    excludeWeekends: boolean("exclude_weekends").notNull().default(true),
+    weekendDays: jsonb("weekend_days").$type<number[]>().notNull().default([0, 6]),
+    excludeHolidays: boolean("exclude_holidays").notNull().default(true),
+    allowHalfDay: boolean("allow_half_day").notNull().default(false),
+    reservePending: boolean("reserve_pending").notNull().default(true),
+    allowNegativeWithApproval: boolean("allow_negative_with_approval").notNull().default(false),
+    isActive: boolean("is_active").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({ leaveTypeIdx: uniqueIndex("leave_policies_type_idx").on(table.leaveType) }),
+);
+
+export const holidayCalendar = pgTable(
+  "holiday_calendar",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    holidayDate: date("holiday_date", { mode: "string" }).notNull(),
+    name: varchar("name", { length: 160 }).notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({ dateIdx: uniqueIndex("holiday_calendar_date_idx").on(table.holidayDate) }),
+);
+
+export const leaveLedger = pgTable(
+  "leave_ledger",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    employeeId: uuid("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+    leaveType: leaveTypeEnum("leave_type").notNull(),
+    requestId: uuid("request_id").references(() => leaveRequests.id, { onDelete: "set null" }),
+    eventType: leaveLedgerEventEnum("event_type").notNull(),
+    amount: numeric("amount", { precision: 7, scale: 2, mode: "number" }).notNull(),
+    cycleStart: date("cycle_start", { mode: "string" }).notNull(),
+    cycleEnd: date("cycle_end", { mode: "string" }).notNull(),
+    eventKey: varchar("event_key", { length: 180 }).notNull(),
+    note: text("note"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    employeeCycleIdx: index("leave_ledger_employee_cycle_idx").on(table.employeeId, table.leaveType, table.cycleStart),
+    eventKeyIdx: uniqueIndex("leave_ledger_event_key_idx").on(table.eventKey),
+  }),
+);
+
+export const leaveApprovalHistory = pgTable(
+  "leave_approval_history",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    requestId: uuid("request_id").notNull().references(() => leaveRequests.id, { onDelete: "cascade" }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    fromStatus: leaveStatusEnum("from_status").notNull(),
+    toStatus: leaveStatusEnum("to_status").notNull(),
+    note: text("note"),
+    exceptionApproved: boolean("exception_approved").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    requestIdx: index("leave_approval_history_request_idx").on(table.requestId),
+    decisionIdx: uniqueIndex("leave_approval_history_decision_idx").on(table.requestId, table.toStatus),
   }),
 );
 
@@ -267,4 +353,5 @@ export type User = typeof users.$inferSelect;
 export type Department = typeof departments.$inferSelect;
 export type Employee = typeof employees.$inferSelect;
 export type LeaveRequest = typeof leaveRequests.$inferSelect;
+export type LeavePolicy = typeof leavePolicies.$inferSelect;
 export type Salary = typeof salaries.$inferSelect;

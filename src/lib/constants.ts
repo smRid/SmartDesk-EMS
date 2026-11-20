@@ -26,6 +26,7 @@ export const LEAVE_STATUSES = [
   "pending",
   "approved",
   "rejected",
+  "cancelled",
 ] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];

@@ -43,6 +43,7 @@ export const employeeUpdateSchema = baseEmployeeSchema;
 
 export const leaveRequestSchema = z
   .object({
+    dayFraction: z.coerce.number().refine((value) => value === 1 || value === 0.5, "Choose a full or half day.").default(1),
     leaveType: z.enum(LEAVE_TYPES),
     startDate: z.string().min(1, "Start date is required."),
     endDate: z.string().min(1, "End date is required."),

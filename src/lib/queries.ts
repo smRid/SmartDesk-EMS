@@ -19,12 +19,17 @@ import {
   auditLogs,
   departments,
   employees,
+  holidayCalendar,
+  leaveApprovalHistory,
+  leaveLedger,
+  leavePolicies,
   leaveRequests,
   salaries,
   users,
 } from "@/db/schema";
 import { APP_CURRENCY } from "@/lib/constants";
 import { requireAuth } from "@/lib/auth";
+import { getLeaveCycle } from "@/lib/leave-accounting";
 
 type EmployeeFilters = {
   departmentId?: string;
@@ -56,6 +61,46 @@ export async function getDepartmentOptions() {
     })
     .from(departments)
     .orderBy(departments.name);
+}
+
+export async function getLeavePolicyAdminData() {
+  const [policies, holidays] = await Promise.all([
+    db.select().from(leavePolicies).orderBy(leavePolicies.leaveType),
+    db.select().from(holidayCalendar).where(eq(holidayCalendar.isActive, true)).orderBy(holidayCalendar.holidayDate),
+  ]);
+  return { holidays, policies };
+}
+
+export async function getEmployeeLeaveBalances(employeeId: string) {
+  const [rows, policies, [employee]] = await Promise.all([db.select({
+    cycleStart: leaveLedger.cycleStart,
+    leaveType: leaveLedger.leaveType,
+    value: sum(leaveLedger.amount),
+  }).from(leaveLedger).where(eq(leaveLedger.employeeId, employeeId)).groupBy(leaveLedger.leaveType, leaveLedger.cycleStart),
+  db.select().from(leavePolicies).where(eq(leavePolicies.isActive, true)),
+  db.select({ joiningDate: employees.joiningDate }).from(employees).where(eq(employees.id, employeeId)).limit(1)]);
+  if (!employee) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  return policies.map((policy) => ({
+    available: Number(rows.find((row) => row.leaveType === policy.leaveType && row.cycleStart === getLeaveCycle(today, employee.joiningDate, policy.cycleType).start)?.value ?? policy.annualEntitlement),
+    entitlement: policy.annualEntitlement,
+    leaveType: policy.leaveType,
+  }));
+}
+
+export async function getLeaveApprovalHistory(requestId: string) {
+  return db.select({
+    actorName: users.name,
+    createdAt: leaveApprovalHistory.createdAt,
+    exceptionApproved: leaveApprovalHistory.exceptionApproved,
+    fromStatus: leaveApprovalHistory.fromStatus,
+    id: leaveApprovalHistory.id,
+    note: leaveApprovalHistory.note,
+    toStatus: leaveApprovalHistory.toStatus,
+  }).from(leaveApprovalHistory)
+    .leftJoin(users, eq(users.id, leaveApprovalHistory.actorUserId))
+    .where(eq(leaveApprovalHistory.requestId, requestId))
+    .orderBy(desc(leaveApprovalHistory.createdAt));
 }
 
 export async function getActiveEmployeeOptions(departmentId?: string) {
@@ -276,6 +321,8 @@ export async function getLeaveList(filters: LeaveFilters = {}) {
   return rows.map((row) => ({
     adminNote: row.leave.adminNote,
     appliedAt: row.leave.appliedAt,
+    chargeDays: row.leave.chargeDays,
+    dayFraction: row.leave.dayFraction,
     departmentName: row.department?.name ?? "Unassigned",
     employeeCode: row.employee.employeeId,
     employeeImageUrl: row.employee.imageUrl,
@@ -493,14 +540,14 @@ export async function getAdminDashboardData(monthsInput: number = 6) {
       .orderBy(sql.raw("1")),
   ]);
 
-  const leaveCounts = { approved: 0, pending: 0, rejected: 0 };
+  const leaveCounts = { approved: 0, cancelled: 0, pending: 0, rejected: 0 };
   for (const row of leaveStatusRows) {
     leaveCounts[row.status] = row.value;
   }
 
   const trend = Array.from({ length: months }, (_, index) => {
     const key = shiftMonthKey(trendStartKey, index);
-    const values = { approved: 0, pending: 0, rejected: 0 };
+    const values = { approved: 0, cancelled: 0, pending: 0, rejected: 0 };
     for (const row of trendRows) {
       if (row.month === key) values[row.status] = row.value;
     }
@@ -686,7 +733,7 @@ export async function getEmployeeDashboardData(yearInput?: string) {
       .limit(5),
   ]);
 
-  const leaveCounts = { approved: 0, pending: 0, rejected: 0 };
+  const leaveCounts = { approved: 0, cancelled: 0, pending: 0, rejected: 0 };
   for (const row of leaveStatusRows) leaveCounts[row.status] = row.value;
 
   const completionFields = [

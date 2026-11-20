@@ -31,6 +31,7 @@ export default async function LeavesPage({ searchParams }: LeavesPageProps) {
   return (
     <div className="space-y-6">
       <PageHeader
+        action={<Button asChild><Link href="/admin/leaves/policies">Policies & calendar</Link></Button>}
         description="Review pending leave requests and track historical decisions."
         title="Leave Management"
       />

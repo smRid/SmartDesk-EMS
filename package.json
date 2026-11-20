@@ -8,6 +8,7 @@
     "start": "next start",
     "type-check": "tsc --noEmit",
     "lint": "eslint",
+    "test": "node --experimental-strip-types --test src/lib/*.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

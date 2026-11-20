@@ -1,7 +1,8 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { compare, hash } from "bcrypt";
-import { and, eq, ne } from "drizzle-orm";
+import { and, count, eq, gte, inArray, lte, ne, sum } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/db";
@@ -9,6 +10,10 @@ import {
   auditLogs,
   departments,
   employees,
+  holidayCalendar,
+  leaveApprovalHistory,
+  leaveLedger,
+  leavePolicies,
   leaveRequests,
   salaries,
   users,
@@ -34,6 +39,7 @@ import {
   type SalaryInput,
 } from "@/lib/validations";
 import { calculateLeaveDays } from "@/lib/utils";
+import { canRequestLeave, countChargeableLeaveDays, getLeaveCycle } from "@/lib/leave-accounting";
 
 type ActionResult = {
   fieldErrors?: Record<string, string[] | undefined>;
@@ -650,32 +656,108 @@ export async function createLeaveRequestAction(
     return failure("Please correct the leave details.", parsed.error.flatten().fieldErrors);
   }
 
+  const [[employee], [policy], holidays, [overlap]] = await Promise.all([
+    db.select({ joiningDate: employees.joiningDate, status: employees.status, userActive: users.isActive })
+      .from(employees).innerJoin(users, eq(users.id, employees.userId))
+      .where(eq(employees.id, session.employeeRecordId)).limit(1),
+    db.select().from(leavePolicies)
+      .where(and(eq(leavePolicies.leaveType, parsed.data.leaveType), eq(leavePolicies.isActive, true))).limit(1),
+    db.select({ date: holidayCalendar.holidayDate }).from(holidayCalendar)
+      .where(and(eq(holidayCalendar.isActive, true), gte(holidayCalendar.holidayDate, parsed.data.startDate), lte(holidayCalendar.holidayDate, parsed.data.endDate))),
+    db.select({ id: leaveRequests.id }).from(leaveRequests)
+      .where(and(
+        eq(leaveRequests.employeeId, session.employeeRecordId),
+        inArray(leaveRequests.status, ["pending", "approved"]),
+        lte(leaveRequests.startDate, parsed.data.endDate),
+        gte(leaveRequests.endDate, parsed.data.startDate),
+      )).limit(1),
+  ]);
+  if (!employee || !canRequestLeave(employee.userActive, employee.status)) return failure("Inactive employees cannot request leave.");
+  if (!policy) return failure("This leave type does not have an active policy. Contact HR.");
+  if (overlap) return failure("This request overlaps an existing pending or approved request.");
+  if (parsed.data.dayFraction === 0.5 && !policy.allowHalfDay) return failure("Half-day requests are not enabled for this leave type.");
+
+  let chargeDays: number;
+  try {
+    chargeDays = countChargeableLeaveDays({
+      dayFraction: parsed.data.dayFraction,
+      endDate: parsed.data.endDate,
+      holidays: holidays.map((item) => item.date),
+      policy,
+      startDate: parsed.data.startDate,
+    });
+  } catch (error) {
+    return failure(error instanceof Error ? error.message : "The leave dates are invalid.");
+  }
+  if (chargeDays <= 0) return failure("The selected range contains no working days.");
+  const cycle = getLeaveCycle(parsed.data.startDate, employee.joiningDate, policy.cycleType);
+  const [balanceRow] = await db.select({ entries: count(), value: sum(leaveLedger.amount) }).from(leaveLedger)
+    .where(and(
+      eq(leaveLedger.employeeId, session.employeeRecordId),
+      eq(leaveLedger.leaveType, parsed.data.leaveType),
+      eq(leaveLedger.cycleStart, cycle.start),
+    ));
+  if (!balanceRow?.entries) {
+    await db.insert(leaveLedger).values({
+      amount: policy.annualEntitlement,
+      createdBy: session.id,
+      cycleEnd: cycle.end,
+      cycleStart: cycle.start,
+      employeeId: session.employeeRecordId,
+      eventKey: `entitlement:${session.employeeRecordId}:${parsed.data.leaveType}:${cycle.start}`,
+      eventType: "grant",
+      leaveType: parsed.data.leaveType,
+      note: "Automatic policy entitlement grant",
+    }).onConflictDoNothing();
+  }
+  const available = Number(balanceRow?.entries ? balanceRow.value : policy.annualEntitlement);
+  if (available < chargeDays) return failure(`Insufficient balance. ${available} day(s) are available.`);
+
   const totalDays = calculateLeaveDays(parsed.data.startDate, parsed.data.endDate);
 
-  const [leave] = await db
-    .insert(leaveRequests)
+  const leaveId = randomUUID();
+  const createRequest = db.insert(leaveRequests)
     .values({
+      id: leaveId,
       employeeId: session.employeeRecordId,
+      chargeDays,
+      cycleEnd: cycle.end,
+      cycleStart: cycle.start,
+      dayFraction: parsed.data.dayFraction,
       endDate: parsed.data.endDate,
       leaveType: parsed.data.leaveType,
       reason: parsed.data.reason,
       startDate: parsed.data.startDate,
       status: "pending",
       totalDays,
-    })
-    .returning({ id: leaveRequests.id });
+    });
+  if (policy.reservePending) {
+    const reserve = db.insert(leaveLedger).values({
+      amount: -chargeDays,
+      createdBy: session.id,
+      cycleEnd: cycle.end,
+      cycleStart: cycle.start,
+      employeeId: session.employeeRecordId,
+      eventKey: `request:${leaveId}:reserve`,
+      eventType: "reserve",
+      leaveType: parsed.data.leaveType,
+      requestId: leaveId,
+    });
+    await db.batch([createRequest, reserve]);
+  } else await createRequest;
 
   revalidatePath("/employee/leave");
   revalidatePath("/employee/dashboard");
   revalidatePath("/admin/leaves");
   revalidatePath("/admin/dashboard");
-  await writeAuditLog(session.id, "leave.created", "leave_request", leave.id);
+  await writeAuditLog(session.id, "leave.created", "leave_request", leaveId);
 
   return success("Leave request submitted successfully.", "/employee/leave");
 }
 
 export async function reviewLeaveRequestAction(input: {
   adminNote?: string;
+  exceptionApproved?: boolean;
   leaveId: string;
   status: "approved" | "rejected";
 }): Promise<ActionResult> {
@@ -694,17 +776,74 @@ export async function reviewLeaveRequestAction(input: {
   if (record.status !== "pending") {
     return failure("This leave request has already been reviewed.");
   }
+  const [policy] = await db.select().from(leavePolicies).where(eq(leavePolicies.leaveType, record.leaveType)).limit(1);
+  if (input.exceptionApproved && !policy?.allowNegativeWithApproval) {
+    return failure("Exception approval is not enabled for this leave policy.");
+  }
+  if (input.status === "approved" && !policy?.reservePending && record.cycleStart && record.chargeDays) {
+    const [balance] = await db.select({ value: sum(leaveLedger.amount) }).from(leaveLedger).where(and(
+      eq(leaveLedger.employeeId, record.employeeId),
+      eq(leaveLedger.leaveType, record.leaveType),
+      eq(leaveLedger.cycleStart, record.cycleStart),
+    ));
+    if (Number(balance?.value ?? 0) < record.chargeDays && !input.exceptionApproved) {
+      return failure("Insufficient balance. Enable a permitted exception or reject the request.");
+    }
+  }
 
-  await db
-    .update(leaveRequests)
+  const updateDecision = db.update(leaveRequests)
     .set({
       adminNote: input.adminNote?.trim() || null,
       reviewedAt: new Date(),
       reviewedBy: session.id,
+      exceptionApproved: Boolean(input.exceptionApproved),
       status: input.status,
       updatedAt: new Date(),
     })
-    .where(eq(leaveRequests.id, input.leaveId));
+    .where(and(eq(leaveRequests.id, input.leaveId), eq(leaveRequests.status, "pending")));
+
+  const entries = [];
+  if (record.cycleStart && record.cycleEnd && record.chargeDays) {
+    if (policy?.reservePending) {
+      entries.push({
+        amount: record.chargeDays,
+        createdBy: session.id,
+        cycleEnd: record.cycleEnd,
+        cycleStart: record.cycleStart,
+        employeeId: record.employeeId,
+        eventKey: `request:${record.id}:release`,
+        eventType: "release" as const,
+        leaveType: record.leaveType,
+        requestId: record.id,
+      });
+    }
+    if (input.status === "approved") {
+      entries.push({
+        amount: -record.chargeDays,
+        createdBy: session.id,
+        cycleEnd: record.cycleEnd,
+        cycleStart: record.cycleStart,
+        employeeId: record.employeeId,
+        eventKey: `request:${record.id}:consume`,
+        eventType: "consume" as const,
+        leaveType: record.leaveType,
+        requestId: record.id,
+      });
+    }
+  }
+  const writeHistory = db.insert(leaveApprovalHistory).values({
+    actorUserId: session.id,
+    exceptionApproved: Boolean(input.exceptionApproved),
+    fromStatus: "pending",
+    note: input.adminNote?.trim() || null,
+    requestId: input.leaveId,
+    toStatus: input.status,
+  }).onConflictDoNothing();
+  if (entries.length) {
+    await db.batch([updateDecision, db.insert(leaveLedger).values(entries).onConflictDoNothing(), writeHistory]);
+  } else {
+    await db.batch([updateDecision, writeHistory]);
+  }
 
   revalidatePath("/admin/leaves");
   revalidatePath(`/admin/leaves/${input.leaveId}`);
@@ -714,6 +853,83 @@ export async function reviewLeaveRequestAction(input: {
   await writeAuditLog(session.id, `leave.${input.status}`, "leave_request", input.leaveId);
 
   return success(`Leave request ${input.status}.`);
+}
+
+export async function cancelLeaveRequestAction(leaveId: string): Promise<ActionResult> {
+  const session = await requireAuth("employee");
+  if (!session.employeeRecordId) return failure("Employee profile is missing.");
+  const [record] = await db.select().from(leaveRequests).where(and(
+    eq(leaveRequests.id, leaveId),
+    eq(leaveRequests.employeeId, session.employeeRecordId),
+  )).limit(1);
+  if (!record) return failure("Leave request was not found.");
+  if (record.status !== "pending") return failure("Only pending requests can be cancelled.");
+  const cancelRequest = db.update(leaveRequests).set({ status: "cancelled", updatedAt: new Date() })
+    .where(and(eq(leaveRequests.id, leaveId), eq(leaveRequests.status, "pending")));
+  const [policy] = await db.select().from(leavePolicies).where(eq(leavePolicies.leaveType, record.leaveType)).limit(1);
+  const cancelHistory = db.insert(leaveApprovalHistory).values({
+    actorUserId: session.id,
+    fromStatus: "pending",
+    note: "Cancelled by employee",
+    requestId: record.id,
+    toStatus: "cancelled",
+  }).onConflictDoNothing();
+  if (policy?.reservePending && record.cycleStart && record.cycleEnd && record.chargeDays) {
+    const release = db.insert(leaveLedger).values({
+      amount: record.chargeDays,
+      createdBy: session.id,
+      cycleEnd: record.cycleEnd,
+      cycleStart: record.cycleStart,
+      employeeId: record.employeeId,
+      eventKey: `request:${record.id}:cancel-release`,
+      eventType: "release",
+      leaveType: record.leaveType,
+      requestId: record.id,
+    }).onConflictDoNothing();
+    await db.batch([cancelRequest, release, cancelHistory]);
+  } else {
+    await db.batch([cancelRequest, cancelHistory]);
+  }
+  revalidatePath("/employee/leave");
+  revalidatePath("/admin/leaves");
+  await writeAuditLog(session.id, "leave.cancelled", "leave_request", record.id);
+  return success("Leave request cancelled.");
+}
+
+export async function updateLeavePolicyAction(formData: FormData): Promise<ActionResult> {
+  const session = await requireAuth("admin");
+  const leaveType = getValue(formData, "leaveType");
+  if (!["casual", "sick", "annual", "emergency"].includes(leaveType)) return failure("Invalid leave type.");
+  const entitlement = Number(getValue(formData, "annualEntitlement"));
+  if (!Number.isFinite(entitlement) || entitlement < 0) return failure("Entitlement must be zero or greater.");
+  await db.update(leavePolicies).set({
+    allowHalfDay: formData.get("allowHalfDay") === "on",
+    allowNegativeWithApproval: formData.get("allowNegativeWithApproval") === "on",
+    annualEntitlement: entitlement,
+    cycleType: getValue(formData, "cycleType") === "anniversary_year" ? "anniversary_year" : "calendar_year",
+    excludeHolidays: formData.get("excludeHolidays") === "on",
+    excludeWeekends: formData.get("excludeWeekends") === "on",
+    isActive: formData.get("isActive") === "on",
+    reservePending: formData.get("reservePending") === "on",
+    updatedAt: new Date(),
+  }).where(eq(leavePolicies.leaveType, leaveType as "casual"));
+  revalidatePath("/admin/leaves/policies");
+  await writeAuditLog(session.id, "leave_policy.updated", "leave_policy", leaveType);
+  return success("Leave policy updated.");
+}
+
+export async function createHolidayAction(formData: FormData): Promise<ActionResult> {
+  const session = await requireAuth("admin");
+  const holidayDate = getValue(formData, "holidayDate");
+  const name = getValue(formData, "name");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(holidayDate) || name.length < 2) return failure("Enter a valid holiday date and name.");
+  await db.insert(holidayCalendar).values({ holidayDate, name }).onConflictDoUpdate({
+    target: holidayCalendar.holidayDate,
+    set: { isActive: true, name },
+  });
+  revalidatePath("/admin/leaves/policies");
+  await writeAuditLog(session.id, "holiday.saved", "holiday", holidayDate);
+  return success("Holiday saved.");
 }
 
 export async function createSalaryAction(input: SalaryInput): Promise<ActionResult> {

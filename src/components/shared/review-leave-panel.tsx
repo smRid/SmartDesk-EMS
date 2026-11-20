@@ -11,12 +11,14 @@ import { Textarea } from "@/components/ui/textarea";
 export function ReviewLeavePanel({ leaveId }: { leaveId: string }) {
   const router = useRouter();
   const [note, setNote] = useState("");
+  const [exceptionApproved, setExceptionApproved] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const review = (status: "approved" | "rejected") => {
     startTransition(async () => {
       const result = await reviewLeaveRequestAction({
         adminNote: note,
+        exceptionApproved,
         leaveId,
         status,
       });
@@ -42,6 +44,7 @@ export function ReviewLeavePanel({ leaveId }: { leaveId: string }) {
           value={note}
         />
       </div>
+      <label className="flex items-start gap-2 text-sm"><input checked={exceptionApproved} onChange={(event) => setExceptionApproved(event.target.checked)} type="checkbox" /><span>Exception approval (only when policy permits a negative balance)</span></label>
 
       <div className="flex flex-wrap gap-3">
         <Button

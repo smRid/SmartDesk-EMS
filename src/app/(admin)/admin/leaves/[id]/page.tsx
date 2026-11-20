@@ -5,7 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status-chip";
 import { leaveTypeLabels } from "@/lib/constants";
-import { getLeaveDetails } from "@/lib/queries";
+import { getLeaveApprovalHistory, getLeaveDetails } from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
 
 type LeaveDetailPageProps = {
@@ -14,7 +14,7 @@ type LeaveDetailPageProps = {
 
 export default async function LeaveDetailPage({ params }: LeaveDetailPageProps) {
   const { id } = await params;
-  const leave = await getLeaveDetails(id);
+  const [leave, history] = await Promise.all([getLeaveDetails(id), getLeaveApprovalHistory(id)]);
 
   if (!leave) {
     notFound();
@@ -97,6 +97,7 @@ export default async function LeaveDetailPage({ params }: LeaveDetailPageProps) 
           </CardContent>
         </Card>
       </div>
+      <Card><CardHeader><CardTitle>Approval history</CardTitle></CardHeader><CardContent className="space-y-3">{history.length ? history.map((item) => <div className="rounded-xl border p-4" key={item.id}><div className="flex justify-between gap-3"><span className="font-semibold">{item.fromStatus} → {item.toStatus}</span><span className="text-sm text-muted">{formatDate(item.createdAt, "MMM d, yyyy h:mm a")}</span></div><p className="mt-1 text-sm text-muted">{item.actorName ?? "System"}{item.exceptionApproved ? " · Exception approved" : ""}</p>{item.note ? <p className="mt-2">{item.note}</p> : null}</div>) : <p className="text-sm text-muted">No decision history recorded for this request.</p>}</CardContent></Card>
     </div>
   );
 }

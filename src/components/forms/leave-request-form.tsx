@@ -23,12 +23,13 @@ export function LeaveRequestForm() {
   const [isPending, startTransition] = useTransition();
   const form = useForm<LeaveRequestInput>({
     defaultValues: {
+      dayFraction: 1,
       endDate: "",
       leaveType: "casual",
       reason: "",
       startDate: "",
     },
-    resolver: zodResolver(leaveRequestSchema),
+    resolver: zodResolver(leaveRequestSchema) as never,
   });
 
   const onSubmit = form.handleSubmit((values) => {
@@ -76,6 +77,14 @@ export function LeaveRequestForm() {
           <Label htmlFor="endDate">To Date</Label>
           <Input id="endDate" type="date" {...form.register("endDate")} />
           <FormError message={form.formState.errors.endDate?.message} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="dayFraction">Duration</Label>
+          <Select id="dayFraction" {...form.register("dayFraction", { valueAsNumber: true })}>
+            <option value="1">Full day(s)</option>
+            <option value="0.5">Half day</option>
+          </Select>
+          <FormError message={form.formState.errors.dayFraction?.message} />
         </div>
       </div>
 
