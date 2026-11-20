@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   and,
+  asc,
   count,
   desc,
   eq,
@@ -15,6 +16,7 @@ import {
 } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  auditLogs,
   departments,
   employees,
   leaveRequests,
@@ -26,7 +28,11 @@ import { requireAuth } from "@/lib/auth";
 
 type EmployeeFilters = {
   departmentId?: string;
+  page?: number;
+  pageSize?: number;
   query?: string;
+  sort?: "name-asc" | "name-desc" | "newest" | "oldest";
+  status?: string;
 };
 
 type LeaveFilters = {
@@ -122,7 +128,22 @@ export async function getEmployeesList(filters: EmployeeFilters = {}) {
     conditions.push(eq(employees.departmentId, filters.departmentId));
   }
 
-  const rows = await db
+  if (filters.status && ["active", "on_leave", "inactive"].includes(filters.status)) {
+    conditions.push(eq(employees.status, filters.status as "active" | "on_leave" | "inactive"));
+  }
+
+  const pageSize = Math.min(Math.max(filters.pageSize ?? 10, 5), 50);
+  const page = Math.max(filters.page ?? 1, 1);
+  const where = conditions.length ? and(...conditions) : undefined;
+  const orderBy = filters.sort === "name-asc"
+    ? asc(users.name)
+    : filters.sort === "name-desc"
+      ? desc(users.name)
+      : filters.sort === "oldest"
+        ? asc(employees.createdAt)
+        : desc(employees.createdAt);
+
+  const [rows, totalRows] = await Promise.all([db
     .select({
       department: departments,
       employee: employees,
@@ -131,10 +152,15 @@ export async function getEmployeesList(filters: EmployeeFilters = {}) {
     .from(employees)
     .innerJoin(users, eq(users.id, employees.userId))
     .leftJoin(departments, eq(employees.departmentId, departments.id))
-    .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(employees.createdAt));
+    .where(where)
+    .orderBy(orderBy)
+    .limit(pageSize)
+    .offset((page - 1) * pageSize),
+  db.select({ value: count() }).from(employees)
+    .innerJoin(users, eq(users.id, employees.userId))
+    .where(where)]);
 
-  return rows.map((row) => ({
+  const items = rows.map((row) => ({
     departmentId: row.department?.id ?? null,
     departmentName: row.department?.name ?? "Unassigned",
     designation: row.employee.designation,
@@ -148,6 +174,21 @@ export async function getEmployeesList(filters: EmployeeFilters = {}) {
     role: row.user.role,
     status: row.employee.status,
   }));
+
+  const total = totalRows[0]?.value ?? 0;
+  return { items, page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
+}
+
+export async function getEmployeeActivity(employeeRecordId: string) {
+  return db.select({
+    action: auditLogs.action,
+    createdAt: auditLogs.createdAt,
+    details: auditLogs.detailsJson,
+    id: auditLogs.id,
+  }).from(auditLogs)
+    .where(and(eq(auditLogs.entityType, "employee"), eq(auditLogs.entityId, employeeRecordId)))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(25);
 }
 
 export async function getEmployeeDetails(employeeRecordId: string) {

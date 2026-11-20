@@ -110,6 +110,11 @@ export function EmployeeForm({
 
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
+      <section aria-labelledby="identity-employment-heading" className="space-y-4 rounded-2xl border p-5">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white" id="identity-employment-heading">Identity and employment</h2>
+        <p className="text-sm text-muted">Account, personal, role, department, and compensation details.</p>
+      </div>
       <div className="grid gap-5 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
@@ -247,11 +252,12 @@ export function EmployeeForm({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="address">Address</Label>
-        <Input id="address" placeholder="Address" {...form.register("address")} />
-        <FormError message={form.formState.errors.address?.message} />
-      </div>
+      </section>
+
+      <section aria-labelledby="contact-heading" className="space-y-4 rounded-2xl border p-5">
+        <div><h2 className="text-lg font-semibold text-slate-900 dark:text-white" id="contact-heading">Contact details</h2><p className="text-sm text-muted">Keep the employee’s current contact information on file.</p></div>
+        <div className="space-y-2"><Label htmlFor="address">Address</Label><Input id="address" placeholder="Address" {...form.register("address")} /><FormError message={form.formState.errors.address?.message} /></div>
+      </section>
 
       <Button disabled={isPending} type="submit">
         {isPending

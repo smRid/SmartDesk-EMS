@@ -413,7 +413,7 @@ export async function createEmployeeAction(formData: FormData): Promise<ActionRe
     .values({
       email: parsed.data.email,
       employeeId: parsed.data.employeeId,
-      isActive: true,
+      isActive: parsed.data.status !== "inactive",
       name: parsed.data.name,
       passwordHash: await hash(parsed.data.password, 10),
       role: parsed.data.role,
@@ -489,6 +489,12 @@ export async function updateEmployeeAction(
     return failure("Employee record was not found.");
   }
 
+  if (record.userId === session.id && parsed.data.status === "inactive") {
+    return failure("You cannot deactivate your own account from this screen.", {
+      status: ["Choose active or on leave for your own account."],
+    });
+  }
+
   const [emailTaken, employeeIdTaken] = await Promise.all([
     db
       .select({ id: users.id })
@@ -521,6 +527,7 @@ export async function updateEmployeeAction(
     .set({
       email: parsed.data.email,
       employeeId: parsed.data.employeeId,
+      isActive: parsed.data.status !== "inactive",
       name: parsed.data.name,
       role: parsed.data.role,
       updatedAt: new Date(),
@@ -604,6 +611,29 @@ export async function deleteEmployeeAction(
   await writeAuditLog(session.id, "employee.deactivated", "employee", employeeRecordId);
 
   return success("Employee deactivated successfully.");
+}
+
+export async function reactivateEmployeeAction(
+  employeeRecordId: string,
+): Promise<ActionResult> {
+  const session = await requireAuth("admin");
+  const [record] = await db.select({ userId: employees.userId })
+    .from(employees)
+    .where(eq(employees.id, employeeRecordId))
+    .limit(1);
+
+  if (!record) return failure("Employee record was not found.");
+
+  await db.update(users).set({ isActive: true, updatedAt: new Date() })
+    .where(eq(users.id, record.userId));
+  await db.update(employees).set({ status: "active", updatedAt: new Date() })
+    .where(eq(employees.id, employeeRecordId));
+
+  revalidatePath("/admin/employees");
+  revalidatePath(`/admin/employees/${employeeRecordId}`);
+  revalidatePath("/admin/dashboard");
+  await writeAuditLog(session.id, "employee.reactivated", "employee", employeeRecordId);
+  return success("Employee reactivated successfully.");
 }
 
 export async function createLeaveRequestAction(
