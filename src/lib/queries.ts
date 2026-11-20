@@ -8,6 +8,7 @@ import {
   eq,
   gte,
   ilike,
+  inArray,
   isNull,
   lt,
   lte,
@@ -56,6 +57,8 @@ type SalaryFilters = {
   from?: string;
   query?: string;
   to?: string;
+  status?: string;
+  publishedOnly?: boolean;
 };
 
 export async function getDepartmentOptions() {
@@ -409,6 +412,10 @@ export async function getSalaryList(filters: SalaryFilters = {}) {
   if (filters.to) {
     conditions.push(lte(salaries.payDate, filters.to));
   }
+  if (filters.publishedOnly) conditions.push(inArray(salaries.status, ["finalized", "paid"]));
+  else if (filters.status && ["draft", "approved", "finalized", "paid"].includes(filters.status)) {
+    conditions.push(eq(salaries.status, filters.status as "draft"));
+  }
 
   const rows = await db
     .select({
@@ -433,7 +440,12 @@ export async function getSalaryList(filters: SalaryFilters = {}) {
     employeeName: row.user.name,
     employeeRecordId: row.employee.id,
     id: row.salary.id,
+    currency: row.salary.currency,
     payDate: row.salary.payDate,
+    periodEnd: row.salary.periodEnd,
+    periodStart: row.salary.periodStart,
+    status: row.salary.status,
+    createdBy: row.salary.createdBy,
     totalSalary: row.salary.totalSalary,
   }));
 }

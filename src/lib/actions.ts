@@ -50,6 +50,7 @@ import {
 import { calculateLeaveDays } from "@/lib/utils";
 import { canRequestLeave, countChargeableLeaveDays, getLeaveCycle } from "@/lib/leave-accounting";
 import { calculateLateMinutes, calculateWorkedMinutes, isEligibleForAttendance, ownsAttendanceRecord, resolveShiftWorkDate } from "@/lib/attendance";
+import { calculateSalaryTotal } from "@/lib/payroll";
 
 type ActionResult = {
   fieldErrors?: Record<string, string[] | undefined>;
@@ -967,8 +968,14 @@ export async function createSalaryAction(input: SalaryInput): Promise<ActionResu
     return failure("Selected employee does not belong to that department.");
   }
 
-  const totalSalary =
-    parsed.data.basicSalary + parsed.data.allowance - parsed.data.deduction;
+  const [duplicate] = await db.select({ id: salaries.id }).from(salaries).where(and(
+    eq(salaries.employeeId, parsed.data.employeeId),
+    eq(salaries.periodStart, parsed.data.periodStart),
+    eq(salaries.periodEnd, parsed.data.periodEnd),
+  )).limit(1);
+  if (duplicate) return failure("A salary entry already exists for this employee and period.");
+
+  const totalSalary = calculateSalaryTotal(parsed.data.basicSalary, parsed.data.allowance, parsed.data.deduction);
 
   const [salary] = await db
     .insert(salaries)
@@ -980,6 +987,9 @@ export async function createSalaryAction(input: SalaryInput): Promise<ActionResu
       departmentId: parsed.data.departmentId,
       employeeId: parsed.data.employeeId,
       payDate: parsed.data.payDate,
+      periodEnd: parsed.data.periodEnd,
+      periodStart: parsed.data.periodStart,
+      status: "draft",
       totalSalary,
     })
     .returning({ id: salaries.id });
@@ -991,6 +1001,36 @@ export async function createSalaryAction(input: SalaryInput): Promise<ActionResu
   await writeAuditLog(session.id, "salary.created", "salary", salary.id);
 
   return success("Salary record saved successfully.", "/admin/salary");
+}
+
+export async function transitionSalaryAction(input: {
+  salaryId: string;
+  transition: "approve" | "finalize" | "pay";
+}): Promise<ActionResult> {
+  const session = await requireAuth("admin");
+  const [record] = await db.select().from(salaries).where(eq(salaries.id, input.salaryId)).limit(1);
+  if (!record) return failure("Salary record was not found.");
+  if (input.transition === "approve") {
+    if (record.status !== "draft") return failure("Only draft entries can be approved.");
+    if (record.createdBy === session.id) return failure("The entry creator cannot approve their own salary entry.");
+    const [updated] = await db.update(salaries).set({ approvedAt: new Date(), approvedBy: session.id, status: "approved", updatedAt: new Date() })
+      .where(and(eq(salaries.id, record.id), eq(salaries.status, "draft"))).returning({ id: salaries.id });
+    if (!updated) return failure("Salary status changed. Refresh and try again.");
+  } else if (input.transition === "finalize") {
+    if (record.status !== "approved") return failure("Only approved entries can be finalized.");
+    const [updated] = await db.update(salaries).set({ finalizedAt: new Date(), finalizedBy: session.id, status: "finalized", updatedAt: new Date() })
+      .where(and(eq(salaries.id, record.id), eq(salaries.status, "approved"))).returning({ id: salaries.id });
+    if (!updated) return failure("Salary status changed. Refresh and try again.");
+  } else {
+    if (record.status !== "finalized") return failure("Only finalized entries can be marked paid.");
+    const [updated] = await db.update(salaries).set({ paidAt: new Date(), paidBy: session.id, status: "paid", updatedAt: new Date() })
+      .where(and(eq(salaries.id, record.id), eq(salaries.status, "finalized"))).returning({ id: salaries.id });
+    if (!updated) return failure("Salary status changed. Refresh and try again.");
+  }
+  revalidatePath("/admin/salary"); revalidatePath("/employee/salary");
+  const pastTense = input.transition === "pay" ? "paid" : `${input.transition}d`;
+  await writeAuditLog(session.id, `salary.${pastTense}`, "salary", record.id);
+  return success(`Salary entry ${pastTense}.`);
 }
 
 export async function punchAttendanceAction(input: { idempotencyKey: string; type: "check_in" | "check_out" }): Promise<ActionResult> {

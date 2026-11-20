@@ -279,6 +279,9 @@ async function seedSalaries(
       deduction: 150,
       totalSalary: 5500,
       payDate: "2026-04-01",
+      periodStart: "2026-03-01",
+      periodEnd: "2026-03-31",
+      status: "paid",
       createdBy: adminId,
     },
     {
@@ -289,6 +292,9 @@ async function seedSalaries(
       deduction: 120,
       totalSalary: 4980,
       payDate: "2026-04-01",
+      periodStart: "2026-03-01",
+      periodEnd: "2026-03-31",
+      status: "paid",
       createdBy: adminId,
     },
     {
@@ -299,6 +305,9 @@ async function seedSalaries(
       deduction: 140,
       totalSalary: 4640,
       payDate: "2026-04-01",
+      periodStart: "2026-03-01",
+      periodEnd: "2026-03-31",
+      status: "paid",
       createdBy: adminId,
     },
     {
@@ -309,6 +318,9 @@ async function seedSalaries(
       deduction: 100,
       totalSalary: 4440,
       payDate: "2026-04-01",
+      periodStart: "2026-03-01",
+      periodEnd: "2026-03-31",
+      status: "paid",
       createdBy: adminId,
     },
   ]);

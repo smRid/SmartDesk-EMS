@@ -1,6 +1,8 @@
 export const APP_NAME = "SmartDesk EMS";
 export const APP_LOGO = "Smart\nDesk";
 export const APP_CURRENCY = "USD";
+export const ORGANIZATION_NAME = "SmartDesk";
+export const ORGANIZATION_ADDRESS = "Organization address configured by HR";
 export const SESSION_COOKIE_NAME = "smartdesk_ems_session";
 
 export const USER_ROLES = ["admin", "employee"] as const;

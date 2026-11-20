@@ -36,6 +36,8 @@ export function SalaryForm({ departments, employees }: SalaryFormProps) {
       departmentId: departments[0]?.id ?? "",
       employeeId: "",
       payDate: "",
+      periodEnd: "",
+      periodStart: "",
     },
     resolver: zodResolver(salarySchema) as never,
   });
@@ -85,6 +87,16 @@ export function SalaryForm({ departments, employees }: SalaryFormProps) {
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
       <div className="grid gap-5 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="periodStart">Period Start</Label>
+          <Input id="periodStart" type="date" {...form.register("periodStart")} />
+          <FormError message={form.formState.errors.periodStart?.message} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="periodEnd">Period End</Label>
+          <Input id="periodEnd" type="date" {...form.register("periodEnd")} />
+          <FormError message={form.formState.errors.periodEnd?.message} />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="departmentId">Department</Label>
           <Select id="departmentId" {...form.register("departmentId")}>

@@ -52,6 +52,7 @@ export const leaveLedgerEventEnum = pgEnum("leave_ledger_event", [
 export const attendanceStatusEnum = pgEnum("attendance_status", ["present", "late", "missing_checkout", "adjusted"]);
 export const attendanceEventTypeEnum = pgEnum("attendance_event_type", ["check_in", "check_out"]);
 export const adjustmentStatusEnum = pgEnum("adjustment_status", ["pending", "approved", "rejected"]);
+export const salaryStatusEnum = pgEnum("salary_status", ["draft", "approved", "finalized", "paid"]);
 
 export const users = pgTable(
   "users",
@@ -327,9 +328,19 @@ export const salaries = pgTable(
       .notNull()
       .default(0),
     payDate: date("pay_date", { mode: "string" }).notNull(),
+    periodStart: date("period_start", { mode: "string" }).notNull(),
+    periodEnd: date("period_end", { mode: "string" }).notNull(),
+    currency: varchar("currency", { length: 3 }).notNull().default("USD"),
+    status: salaryStatusEnum("status").notNull().default("draft"),
     createdBy: uuid("created_by").references(() => users.id, {
       onDelete: "set null",
     }),
+    approvedBy: uuid("approved_by").references(() => users.id, { onDelete: "set null" }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    finalizedBy: uuid("finalized_by").references(() => users.id, { onDelete: "set null" }),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }),
+    paidBy: uuid("paid_by").references(() => users.id, { onDelete: "set null" }),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -337,6 +348,7 @@ export const salaries = pgTable(
     employeeIdx: index("salaries_employee_idx").on(table.employeeId),
     departmentIdx: index("salaries_department_idx").on(table.departmentId),
     payDateIdx: index("salaries_pay_date_idx").on(table.payDate),
+    employeePeriodIdx: uniqueIndex("salaries_employee_period_idx").on(table.employeeId, table.periodStart, table.periodEnd),
   }),
 );
 

@@ -69,7 +69,9 @@ export const salarySchema = z.object({
   allowance: z.coerce.number().min(0, "Allowance cannot be negative."),
   deduction: z.coerce.number().min(0, "Deduction cannot be negative."),
   payDate: z.string().min(1, "Pay date is required."),
-});
+  periodStart: z.string().date("Period start is required."),
+  periodEnd: z.string().date("Period end is required."),
+}).refine((value) => value.periodEnd >= value.periodStart, { message: "Period end cannot precede the start.", path: ["periodEnd"] });
 
 export const changePasswordSchema = z
   .object({

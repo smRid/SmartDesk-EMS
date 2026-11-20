@@ -1,0 +1,67 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 1574 >>
+stream
+0.06 0.46 0.43 rg 0 700 612 92 re f
+0.95 0.98 0.98 rg 36 570 540 88 re f
+0.88 0.91 0.92 RG 36 300 540 238 re S
+BT /F2 24 Tf 42 754 Td (SmartDesk) Tj ET
+BT /F1 9 Tf 42 732 Td (Organization address configured by HR) Tj ET
+BT /F2 16 Tf 470 748 Td (PAYSLIP) Tj ET
+BT /F1 10 Tf 48 632 Td (Employee) Tj ET
+BT /F2 11 Tf 150 632 Td (Asif Rahman) Tj ET
+BT /F1 10 Tf 48 610 Td (Employee ID) Tj ET
+BT /F2 11 Tf 150 610 Td (EMP-1001) Tj ET
+BT /F1 10 Tf 330 632 Td (Pay period) Tj ET
+BT /F2 10 Tf 410 632 Td (2026-11-01 to 2026-11-30) Tj ET
+BT /F1 10 Tf 330 610 Td (Pay date) Tj ET
+BT /F2 10 Tf 410 610 Td (2026-11-30) Tj ET
+BT /F2 11 Tf 48 510 Td (EARNINGS) Tj ET
+BT /F2 11 Tf 400 510 Td (AMOUNT) Tj ET
+BT /F1 11 Tf 48 474 Td (Basic salary) Tj ET
+BT /F1 11 Tf 400 474 Td (BDT 85000.00) Tj ET
+BT /F1 11 Tf 48 438 Td (Allowance) Tj ET
+BT /F1 11 Tf 400 438 Td (BDT 12500.00) Tj ET
+0.88 0.91 0.92 RG 48 412 m 552 412 l S
+BT /F2 11 Tf 48 382 Td (Gross earnings) Tj ET
+BT /F2 11 Tf 400 382 Td (BDT 97500.00) Tj ET
+BT /F1 11 Tf 48 346 Td (Deductions) Tj ET
+BT /F1 11 Tf 400 346 Td (- BDT 3500.00) Tj ET
+0.06 0.46 0.43 rg 36 220 540 60 re f
+BT /F2 14 Tf 52 244 Td (NET PAY) Tj ET
+BT /F2 18 Tf 390 242 Td (BDT 94000.00) Tj ET
+BT /F1 9 Tf 42 174 Td (Salary definition: basic salary + allowance - deduction.) Tj ET
+BT /F1 9 Tf 42 154 Td (No statutory tax, benefit, or labour-law calculation is included.) Tj ET
+BT /F1 9 Tf 42 96 Td (Generated securely by SmartDesk EMS. This document is private.) Tj ET
+BT /F1 8 Tf 42 60 Td (Organization registration and contact details: configure with HR.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000001877 00000 n 
+0000001947 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+2022
+%%EOF
