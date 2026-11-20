@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import {
-  Building2, CalendarDays, ChevronLeft, LayoutDashboard, PanelLeftOpen,
+  Building2, CalendarDays, ChevronLeft, Clock3, LayoutDashboard, PanelLeftOpen,
   Settings, UserCircle2, Users2, WalletCards, X, type LucideIcon,
 } from "lucide-react";
 import type { NavItem, NavIcon } from "@/lib/constants";
@@ -20,6 +20,7 @@ type SidebarProps = {
 
 const iconMap: Record<NavIcon, LucideIcon> = {
   building2: Building2, calendarDays: CalendarDays, layoutDashboard: LayoutDashboard,
+  clock3: Clock3,
   settings: Settings, userCircle2: UserCircle2, users2: Users2, walletCards: WalletCards,
 };
 

@@ -8,6 +8,7 @@ import {
   eq,
   gte,
   ilike,
+  isNull,
   lt,
   lte,
   or,
@@ -17,6 +18,8 @@ import {
 import { db } from "@/db";
 import {
   auditLogs,
+  attendanceAdjustments,
+  attendanceRecords,
   departments,
   employees,
   holidayCalendar,
@@ -25,7 +28,9 @@ import {
   leavePolicies,
   leaveRequests,
   salaries,
+  shiftAssignments,
   users,
+  workShifts,
 } from "@/db/schema";
 import { APP_CURRENCY } from "@/lib/constants";
 import { requireAuth } from "@/lib/auth";
@@ -61,6 +66,40 @@ export async function getDepartmentOptions() {
     })
     .from(departments)
     .orderBy(departments.name);
+}
+
+export async function getEmployeeAttendanceData(employeeId: string, month: string) {
+  const monthStart = /^\d{4}-\d{2}$/.test(month) ? `${month}-01` : `${new Date().toISOString().slice(0, 7)}-01`;
+  const next = new Date(`${monthStart}T00:00:00Z`); next.setUTCMonth(next.getUTCMonth() + 1);
+  const monthEnd = next.toISOString().slice(0, 10);
+  const [records, [open], adjustments] = await Promise.all([
+    db.select().from(attendanceRecords).where(and(eq(attendanceRecords.employeeId, employeeId), gte(attendanceRecords.workDate, monthStart), lt(attendanceRecords.workDate, monthEnd))).orderBy(desc(attendanceRecords.workDate)),
+    db.select().from(attendanceRecords).where(and(eq(attendanceRecords.employeeId, employeeId), isNull(attendanceRecords.checkOutAt))).orderBy(desc(attendanceRecords.checkInAt)).limit(1),
+    db.select().from(attendanceAdjustments).where(eq(attendanceAdjustments.employeeId, employeeId)).orderBy(desc(attendanceAdjustments.createdAt)),
+  ]);
+  return { adjustments, open: open ?? null, records };
+}
+
+export async function getAdminAttendanceData(filters: { date?: string; month?: string } = {}) {
+  const conditions = [];
+  if (filters.date) conditions.push(eq(attendanceRecords.workDate, filters.date));
+  else if (filters.month && /^\d{4}-\d{2}$/.test(filters.month)) {
+    const start = `${filters.month}-01`; const end = new Date(`${start}T00:00:00Z`); end.setUTCMonth(end.getUTCMonth() + 1);
+    conditions.push(gte(attendanceRecords.workDate, start), lt(attendanceRecords.workDate, end.toISOString().slice(0, 10)));
+  }
+  const [records, corrections, shifts, assignments] = await Promise.all([
+    db.select({ attendance: attendanceRecords, employeeCode: employees.employeeId, employeeName: users.name, shiftName: workShifts.name })
+      .from(attendanceRecords).innerJoin(employees, eq(employees.id, attendanceRecords.employeeId)).innerJoin(users, eq(users.id, employees.userId))
+      .leftJoin(workShifts, eq(workShifts.id, attendanceRecords.shiftId)).where(conditions.length ? and(...conditions) : undefined).orderBy(desc(attendanceRecords.workDate)),
+    db.select({ adjustment: attendanceAdjustments, employeeCode: employees.employeeId, employeeName: users.name })
+      .from(attendanceAdjustments).innerJoin(employees, eq(employees.id, attendanceAdjustments.employeeId)).innerJoin(users, eq(users.id, employees.userId))
+      .where(eq(attendanceAdjustments.status, "pending")).orderBy(attendanceAdjustments.createdAt),
+    db.select().from(workShifts).where(eq(workShifts.isActive, true)).orderBy(workShifts.name),
+    db.select({ assignment: shiftAssignments, employeeName: users.name, shiftName: workShifts.name }).from(shiftAssignments)
+      .innerJoin(employees, eq(employees.id, shiftAssignments.employeeId)).innerJoin(users, eq(users.id, employees.userId))
+      .innerJoin(workShifts, eq(workShifts.id, shiftAssignments.shiftId)).orderBy(desc(shiftAssignments.effectiveFrom)),
+  ]);
+  return { assignments, corrections, records, shifts };
 }
 
 export async function getLeavePolicyAdminData() {

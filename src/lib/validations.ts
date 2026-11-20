@@ -99,6 +99,38 @@ export const adminProfileSchema = z.object({
   email: z.string().trim().email("Enter a valid email address."),
 });
 
+export const attendancePunchSchema = z.object({
+  idempotencyKey: z.string().uuid("Invalid request key."),
+  type: z.enum(["check_in", "check_out"]),
+});
+
+export const attendanceCorrectionSchema = z.object({
+  recordId: z.string().uuid(),
+  requestedCheckInAt: z.string().datetime().optional().or(z.literal("")),
+  requestedCheckOutAt: z.string().datetime().optional().or(z.literal("")),
+  reason: z.string().trim().min(10, "Explain why the correction is needed."),
+}).refine((value) => value.requestedCheckInAt || value.requestedCheckOutAt, {
+  message: "Request at least one time correction.",
+  path: ["requestedCheckInAt"],
+});
+
+export const workShiftSchema = z.object({
+  name: z.string().trim().min(2),
+  timezone: z.string().trim().min(3),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/),
+  graceMinutes: z.coerce.number().int().min(0).max(240),
+}).refine((value) => {
+  try { new Intl.DateTimeFormat("en-US", { timeZone: value.timezone }).format(); return true; } catch { return false; }
+}, { message: "Enter a valid IANA timezone.", path: ["timezone"] });
+
+export const shiftAssignmentSchema = z.object({
+  employeeId: z.string().uuid(),
+  shiftId: z.string().uuid(),
+  effectiveFrom: z.string().date(),
+  effectiveTo: z.string().date().optional().or(z.literal("")),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type DepartmentInput = z.infer<typeof departmentSchema>;
 export type EmployeeCreateInput = z.infer<typeof employeeCreateSchema>;
@@ -108,3 +140,4 @@ export type SalaryInput = z.infer<typeof salarySchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type EmployeeProfileInput = z.infer<typeof employeeProfileSchema>;
 export type AdminProfileInput = z.infer<typeof adminProfileSchema>;
+export type AttendanceCorrectionInput = z.infer<typeof attendanceCorrectionSchema>;

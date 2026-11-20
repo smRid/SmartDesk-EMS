@@ -15,6 +15,13 @@
       "when": 1795172400000,
       "tag": "0001_leave_policy_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795258800000,
+      "tag": "0002_attendance_and_shifts",
+      "breakpoints": true
     }
   ]
 }

@@ -2,12 +2,15 @@
 
 import { randomUUID } from "node:crypto";
 import { compare, hash } from "bcrypt";
-import { and, count, eq, gte, inArray, lte, ne, sum } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNull, lte, ne, sql, sum } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import {
   auditLogs,
+  attendanceAdjustments,
+  attendanceEvents,
+  attendanceRecords,
   departments,
   employees,
   holidayCalendar,
@@ -16,13 +19,17 @@ import {
   leavePolicies,
   leaveRequests,
   salaries,
+  shiftAssignments,
   users,
+  workShifts,
 } from "@/db/schema";
 import { createSession, destroySession, requireAuth } from "@/lib/auth";
 import { deleteImage, uploadImage } from "@/lib/cloudinary";
 import { clearRateLimit, checkRateLimit } from "@/lib/rate-limit";
 import {
   adminProfileSchema,
+  attendanceCorrectionSchema,
+  attendancePunchSchema,
   changePasswordSchema,
   departmentSchema,
   employeeCreateSchema,
@@ -31,6 +38,8 @@ import {
   leaveRequestSchema,
   loginSchema,
   salarySchema,
+  shiftAssignmentSchema,
+  workShiftSchema,
   type AdminProfileInput,
   type ChangePasswordInput,
   type DepartmentInput,
@@ -40,6 +49,7 @@ import {
 } from "@/lib/validations";
 import { calculateLeaveDays } from "@/lib/utils";
 import { canRequestLeave, countChargeableLeaveDays, getLeaveCycle } from "@/lib/leave-accounting";
+import { calculateLateMinutes, calculateWorkedMinutes, isEligibleForAttendance, ownsAttendanceRecord, resolveShiftWorkDate } from "@/lib/attendance";
 
 type ActionResult = {
   fieldErrors?: Record<string, string[] | undefined>;
@@ -981,4 +991,133 @@ export async function createSalaryAction(input: SalaryInput): Promise<ActionResu
   await writeAuditLog(session.id, "salary.created", "salary", salary.id);
 
   return success("Salary record saved successfully.", "/admin/salary");
+}
+
+export async function punchAttendanceAction(input: { idempotencyKey: string; type: "check_in" | "check_out" }): Promise<ActionResult> {
+  const session = await requireAuth("employee");
+  const parsed = attendancePunchSchema.safeParse(input);
+  if (!parsed.success || !session.employeeRecordId) return failure("Invalid attendance request.");
+  const [replayed] = await db.select({ employeeId: attendanceEvents.employeeId }).from(attendanceEvents)
+    .where(eq(attendanceEvents.idempotencyKey, parsed.data.idempotencyKey)).limit(1);
+  if (replayed) return replayed.employeeId === session.employeeRecordId ? success("Attendance already recorded.") : failure("Invalid attendance request.");
+  const [employee] = await db.select({ status: employees.status, userActive: users.isActive }).from(employees)
+    .innerJoin(users, eq(users.id, employees.userId)).where(eq(employees.id, session.employeeRecordId)).limit(1);
+  if (!employee || !isEligibleForAttendance(employee.userActive, employee.status)) return failure("Inactive employees cannot record attendance.");
+  const now = new Date();
+
+  if (parsed.data.type === "check_out") {
+    const [open] = await db.select().from(attendanceRecords).where(and(
+      eq(attendanceRecords.employeeId, session.employeeRecordId), isNull(attendanceRecords.checkOutAt),
+    )).orderBy(desc(attendanceRecords.checkInAt)).limit(1);
+    if (!open) return failure("There is no open attendance session.");
+    const [updated] = await db.update(attendanceRecords).set({
+      checkOutAt: now, workedMinutes: calculateWorkedMinutes(open.checkInAt, now), updatedAt: now,
+    }).where(and(eq(attendanceRecords.id, open.id), isNull(attendanceRecords.checkOutAt))).returning({ id: attendanceRecords.id });
+    if (!updated) return failure("This session has already been checked out.");
+    await db.insert(attendanceEvents).values({
+      employeeId: session.employeeRecordId, eventType: "check_out", idempotencyKey: parsed.data.idempotencyKey,
+      occurredAt: now, recordId: open.id,
+    }).onConflictDoNothing();
+    revalidatePath("/employee/attendance"); revalidatePath("/admin/attendance");
+    await writeAuditLog(session.id, "attendance.checked_out", "attendance_record", open.id);
+    return success("Checked out successfully.");
+  }
+
+  const assignments = await db.select({ assignment: shiftAssignments, shift: workShifts }).from(shiftAssignments)
+    .innerJoin(workShifts, eq(workShifts.id, shiftAssignments.shiftId))
+    .where(and(eq(shiftAssignments.employeeId, session.employeeRecordId), eq(workShifts.isActive, true)))
+    .orderBy(desc(shiftAssignments.effectiveFrom));
+  const assignment = assignments.find((item) => {
+    const date = resolveShiftWorkDate(now, item.shift.timezone, item.shift.endTime, item.shift.isOvernight);
+    return item.assignment.effectiveFrom <= date && (!item.assignment.effectiveTo || item.assignment.effectiveTo >= date);
+  });
+  if (!assignment) return failure("No active shift is assigned. Contact HR.");
+  const workDate = resolveShiftWorkDate(now, assignment.shift.timezone, assignment.shift.endTime, assignment.shift.isOvernight);
+  const jsDay = new Date(`${workDate}T12:00:00Z`).getUTCDay();
+  if (!assignment.shift.weekdays.includes(jsDay)) return failure("Today is not a scheduled work day.");
+  const recordId = randomUUID();
+  const lateMinutes = calculateLateMinutes(now, assignment.shift.startTime, assignment.shift.graceMinutes, assignment.shift.timezone);
+  const [created] = await db.insert(attendanceRecords).values({
+    assignmentId: assignment.assignment.id, checkInAt: now, employeeId: session.employeeRecordId,
+    id: recordId, lateMinutes, shiftId: assignment.shift.id, status: lateMinutes ? "late" : "present",
+    timezone: assignment.shift.timezone, workDate,
+  }).onConflictDoNothing().returning({ id: attendanceRecords.id });
+  if (!created) return failure("An attendance session already exists for this work date.");
+  await db.insert(attendanceEvents).values({
+    employeeId: session.employeeRecordId, eventType: "check_in", idempotencyKey: parsed.data.idempotencyKey,
+    occurredAt: now, recordId,
+  }).onConflictDoNothing();
+  revalidatePath("/employee/attendance"); revalidatePath("/admin/attendance");
+  await writeAuditLog(session.id, "attendance.checked_in", "attendance_record", recordId);
+  return success(lateMinutes ? `Checked in · ${lateMinutes} minute(s) late.` : "Checked in successfully.");
+}
+
+export async function requestAttendanceCorrectionAction(input: {
+  reason: string; recordId: string; requestedCheckInAt?: string; requestedCheckOutAt?: string;
+}): Promise<ActionResult> {
+  const session = await requireAuth("employee");
+  const parsed = attendanceCorrectionSchema.safeParse(input);
+  if (!parsed.success || !session.employeeRecordId) return failure("Please provide valid correction details.", parsed.success ? undefined : parsed.error.flatten().fieldErrors);
+  const [requester] = await db.select({ status: employees.status, userActive: users.isActive }).from(employees)
+    .innerJoin(users, eq(users.id, employees.userId)).where(eq(employees.id, session.employeeRecordId)).limit(1);
+  if (!requester || !isEligibleForAttendance(requester.userActive, requester.status)) return failure("Inactive employees cannot request corrections.");
+  const [record] = await db.select({ employeeId: attendanceRecords.employeeId, id: attendanceRecords.id }).from(attendanceRecords)
+    .where(eq(attendanceRecords.id, parsed.data.recordId)).limit(1);
+  if (!record || !ownsAttendanceRecord(session.employeeRecordId, record.employeeId)) return failure("Attendance record was not found.");
+  await db.insert(attendanceAdjustments).values({
+    employeeId: session.employeeRecordId, reason: parsed.data.reason, recordId: record.id,
+    requestedCheckInAt: parsed.data.requestedCheckInAt ? new Date(parsed.data.requestedCheckInAt) : null,
+    requestedCheckOutAt: parsed.data.requestedCheckOutAt ? new Date(parsed.data.requestedCheckOutAt) : null,
+  }).onConflictDoNothing();
+  revalidatePath("/employee/attendance"); revalidatePath("/admin/attendance");
+  await writeAuditLog(session.id, "attendance.correction_requested", "attendance_record", record.id);
+  return success("Correction request submitted.");
+}
+
+export async function createWorkShiftAction(formData: FormData): Promise<ActionResult> {
+  const session = await requireAuth("admin");
+  const parsed = workShiftSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return failure("Enter valid shift details.", parsed.error.flatten().fieldErrors);
+  const overnight = parsed.data.endTime <= parsed.data.startTime;
+  const [shift] = await db.insert(workShifts).values({ ...parsed.data, isOvernight: overnight }).returning({ id: workShifts.id });
+  revalidatePath("/admin/attendance"); await writeAuditLog(session.id, "shift.created", "work_shift", shift.id);
+  return success("Shift created.");
+}
+
+export async function assignWorkShiftAction(formData: FormData): Promise<ActionResult> {
+  const session = await requireAuth("admin");
+  const parsed = shiftAssignmentSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return failure("Enter valid assignment details.", parsed.error.flatten().fieldErrors);
+  await db.insert(shiftAssignments).values({
+    createdBy: session.id, effectiveFrom: parsed.data.effectiveFrom, effectiveTo: parsed.data.effectiveTo || null,
+    employeeId: parsed.data.employeeId, shiftId: parsed.data.shiftId,
+  });
+  revalidatePath("/admin/attendance"); await writeAuditLog(session.id, "shift.assigned", "employee", parsed.data.employeeId);
+  return success("Shift assigned.");
+}
+
+export async function reviewAttendanceCorrectionAction(input: { adjustmentId: string; note?: string; status: "approved" | "rejected" }): Promise<ActionResult> {
+  const session = await requireAuth("admin");
+  const [request] = await db.select().from(attendanceAdjustments).where(eq(attendanceAdjustments.id, input.adjustmentId)).limit(1);
+  if (!request || request.status !== "pending") return failure("Correction request is no longer pending.");
+  const decide = db.update(attendanceAdjustments).set({
+    reviewedAt: new Date(), reviewedBy: session.id, reviewerNote: input.note?.trim() || null, status: input.status, updatedAt: new Date(),
+  }).where(and(eq(attendanceAdjustments.id, request.id), eq(attendanceAdjustments.status, "pending")));
+  if (input.status === "approved") {
+    const [record] = await db.select().from(attendanceRecords).where(eq(attendanceRecords.id, request.recordId)).limit(1);
+    if (!record) return failure("Attendance record was not found.");
+    const checkIn = request.requestedCheckInAt ?? record.checkInAt;
+    const checkOut = request.requestedCheckOutAt ?? record.checkOutAt;
+    const adjust = db.update(attendanceRecords).set({
+      checkInAt: checkIn, checkOutAt: checkOut, status: "adjusted",
+      workedMinutes: checkOut ? calculateWorkedMinutes(checkIn, checkOut) : null, updatedAt: new Date(),
+    }).where(and(
+      eq(attendanceRecords.id, record.id),
+      sql`exists (select 1 from attendance_adjustments where id = ${request.id} and status = 'approved')`,
+    ));
+    await db.batch([decide, adjust]);
+  } else await decide;
+  revalidatePath("/admin/attendance"); revalidatePath("/employee/attendance");
+  await writeAuditLog(session.id, `attendance.correction_${input.status}`, "attendance_adjustment", request.id);
+  return success(`Correction ${input.status}.`);
 }

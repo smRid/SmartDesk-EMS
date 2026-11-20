@@ -9,6 +9,7 @@ import {
   pgEnum,
   pgTable,
   text,
+  time,
   timestamp,
   uniqueIndex,
   uuid,
@@ -48,6 +49,9 @@ export const leaveLedgerEventEnum = pgEnum("leave_ledger_event", [
   "consume",
   "adjustment",
 ]);
+export const attendanceStatusEnum = pgEnum("attendance_status", ["present", "late", "missing_checkout", "adjusted"]);
+export const attendanceEventTypeEnum = pgEnum("attendance_event_type", ["check_in", "check_out"]);
+export const adjustmentStatusEnum = pgEnum("adjustment_status", ["pending", "approved", "rejected"]);
 
 export const users = pgTable(
   "users",
@@ -223,6 +227,82 @@ export const leaveApprovalHistory = pgTable(
     decisionIdx: uniqueIndex("leave_approval_history_decision_idx").on(table.requestId, table.toStatus),
   }),
 );
+
+export const workShifts = pgTable("work_shifts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 120 }).notNull(),
+  timezone: varchar("timezone", { length: 80 }).notNull().default("Asia/Dhaka"),
+  startTime: time("start_time").notNull(),
+  endTime: time("end_time").notNull(),
+  graceMinutes: integer("grace_minutes").notNull().default(0),
+  weekdays: jsonb("weekdays").$type<number[]>().notNull().default([1, 2, 3, 4, 5]),
+  isOvernight: boolean("is_overnight").notNull().default(false),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({ nameIdx: uniqueIndex("work_shifts_name_idx").on(table.name) }));
+
+export const shiftAssignments = pgTable("shift_assignments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  employeeId: uuid("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  shiftId: uuid("shift_id").notNull().references(() => workShifts.id),
+  effectiveFrom: date("effective_from", { mode: "string" }).notNull(),
+  effectiveTo: date("effective_to", { mode: "string" }),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({ employeeDateIdx: index("shift_assignments_employee_date_idx").on(table.employeeId, table.effectiveFrom) }));
+
+export const attendanceRecords = pgTable("attendance_records", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  employeeId: uuid("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  shiftId: uuid("shift_id").references(() => workShifts.id, { onDelete: "set null" }),
+  assignmentId: uuid("assignment_id").references(() => shiftAssignments.id, { onDelete: "set null" }),
+  workDate: date("work_date", { mode: "string" }).notNull(),
+  timezone: varchar("timezone", { length: 80 }).notNull(),
+  scheduledStart: timestamp("scheduled_start", { withTimezone: true }),
+  scheduledEnd: timestamp("scheduled_end", { withTimezone: true }),
+  checkInAt: timestamp("check_in_at", { withTimezone: true }).notNull(),
+  checkOutAt: timestamp("check_out_at", { withTimezone: true }),
+  workedMinutes: integer("worked_minutes"),
+  lateMinutes: integer("late_minutes").notNull().default(0),
+  status: attendanceStatusEnum("status").notNull().default("present"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  employeeDateIdx: uniqueIndex("attendance_records_employee_date_idx").on(table.employeeId, table.workDate),
+  dateStatusIdx: index("attendance_records_date_status_idx").on(table.workDate, table.status),
+}));
+
+export const attendanceEvents = pgTable("attendance_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  recordId: uuid("record_id").notNull().references(() => attendanceRecords.id, { onDelete: "cascade" }),
+  employeeId: uuid("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  eventType: attendanceEventTypeEnum("event_type").notNull(),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  idempotencyKey: uuid("idempotency_key").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  employeeIdx: index("attendance_events_employee_idx").on(table.employeeId, table.occurredAt),
+  idempotencyIdx: uniqueIndex("attendance_events_idempotency_idx").on(table.idempotencyKey),
+}));
+
+export const attendanceAdjustments = pgTable("attendance_adjustments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  recordId: uuid("record_id").notNull().references(() => attendanceRecords.id, { onDelete: "cascade" }),
+  employeeId: uuid("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  requestedCheckInAt: timestamp("requested_check_in_at", { withTimezone: true }),
+  requestedCheckOutAt: timestamp("requested_check_out_at", { withTimezone: true }),
+  reason: text("reason").notNull(),
+  status: adjustmentStatusEnum("status").notNull().default("pending"),
+  reviewerNote: text("reviewer_note"),
+  reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  employeeIdx: index("attendance_adjustments_employee_idx").on(table.employeeId, table.status),
+  recordStatusIdx: index("attendance_adjustments_record_status_idx").on(table.recordId, table.status),
+}));
 
 export const salaries = pgTable(
   "salaries",

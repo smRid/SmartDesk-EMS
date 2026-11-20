@@ -33,6 +33,7 @@ export type UserRole = (typeof USER_ROLES)[number];
 export type NavIcon =
   | "building2"
   | "calendarDays"
+  | "clock3"
   | "layoutDashboard"
   | "settings"
   | "userCircle2"
@@ -50,6 +51,7 @@ export const adminNavigation: NavItem[] = [
   { href: "/admin/employees", icon: "users2", label: "Employees" },
   { href: "/admin/departments", icon: "building2", label: "Departments" },
   { href: "/admin/leaves", icon: "calendarDays", label: "Leave Requests" },
+  { href: "/admin/attendance", icon: "clock3", label: "Attendance" },
   { href: "/admin/salary", icon: "walletCards", label: "Salary" },
   { href: "/admin/settings", icon: "settings", label: "Settings" },
 ];
@@ -58,6 +60,7 @@ export const employeeNavigation: NavItem[] = [
   { href: "/employee/dashboard", icon: "layoutDashboard", label: "My Dashboard" },
   { href: "/employee/profile", icon: "userCircle2", label: "My Profile" },
   { href: "/employee/leave", icon: "calendarDays", label: "My Leave" },
+  { href: "/employee/attendance", icon: "clock3", label: "My Attendance" },
   { href: "/employee/salary", icon: "walletCards", label: "My Salary" },
   { href: "/employee/settings", icon: "settings", label: "Settings" },
 ];
