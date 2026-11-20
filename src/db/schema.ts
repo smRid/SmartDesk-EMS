@@ -64,6 +64,7 @@ export const users = pgTable(
     role: userRoleEnum("role").notNull().default("employee"),
     employeeId: varchar("employee_id", { length: 32 }),
     isActive: boolean("is_active").notNull().default(true),
+    sessionVersion: integer("session_version").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -73,6 +74,25 @@ export const users = pgTable(
     roleIdx: index("users_role_idx").on(table.role),
   }),
 );
+
+export const authRateLimits = pgTable("auth_rate_limits", {
+  keyHash: varchar("key_hash", { length: 64 }).primaryKey(),
+  count: integer("count").notNull().default(0),
+  resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  tokenHashIdx: uniqueIndex("password_reset_tokens_hash_idx").on(table.tokenHash),
+  userIdx: index("password_reset_tokens_user_idx").on(table.userId, table.expiresAt),
+}));
 
 export const departments = pgTable(
   "departments",

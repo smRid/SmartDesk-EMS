@@ -15,18 +15,24 @@ export async function uploadImage(
   if (!file || file.size === 0) {
     return null;
   }
-
-  if (!file.type.startsWith("image/")) {
-    throw new Error("Only image uploads are supported.");
-  }
+  const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+  if (!allowedTypes.has(file.type)) throw new Error("Only JPEG, PNG, and WebP images are supported.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("Images must be 5 MB or smaller.");
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  const isPng = buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  const isWebp = buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
+  if (!isJpeg && !isPng && !isWebp) throw new Error("The uploaded file content is not a supported image.");
 
   return new Promise<{ publicId: string; url: string }>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
         folder,
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+        overwrite: false,
         resource_type: "image",
+        transformation: [{ crop: "limit", height: 1600, width: 1600 }],
       },
       (error, result) => {
         if (error || !result) {

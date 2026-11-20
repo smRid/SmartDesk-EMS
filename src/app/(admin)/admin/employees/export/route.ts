@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getEmployeesList } from "@/lib/queries";
 import { checkRateLimit } from "@/lib/rate-limit";
-
-const csv = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+import { safeCsvCell as csv } from "@/lib/security-policy";
 
 export async function GET(request: Request) {
   const session = await requireAuth("admin");
-  const limit = checkRateLimit(`employee-export:${session.id}`, { limit: 3, windowMs: 60_000 });
+  const limit = await checkRateLimit(`employee-export:${session.id}`, { limit: 3, windowMs: 60_000 });
   if (!limit.allowed) {
     return NextResponse.json({ message: "Export limit reached. Try again shortly." }, {
       status: 429,

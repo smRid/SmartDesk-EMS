@@ -8,38 +8,18 @@ function redirectToLogin(request: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const isProtected = pathname.startsWith("/admin") || pathname.startsWith("/employee");
-
-  if (!token) {
-    if (isProtected) {
-      return redirectToLogin(request);
-    }
-
-    return NextResponse.next();
-  }
-
+  if (!token) return isProtected ? redirectToLogin(request) : NextResponse.next();
   try {
     const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"], audience: "smartdesk-ems", issuer: "smartdesk-ems" });
     const role = payload.role as string | undefined;
-
-    if (pathname === "/login") {
-      const destination =
-        role === "admin" ? "/admin/dashboard" : "/employee/dashboard";
-      return NextResponse.redirect(new URL(destination, request.url));
-    }
-
-    if (pathname.startsWith("/admin") && role !== "admin") {
-      return NextResponse.redirect(new URL("/forbidden", request.url));
-    }
-
-    if (pathname.startsWith("/employee") && role !== "employee") {
-      return NextResponse.redirect(new URL("/forbidden", request.url));
-    }
-
+    if (pathname === "/login") return NextResponse.redirect(new URL(role === "admin" ? "/admin/dashboard" : "/employee/dashboard", request.url));
+    if (pathname.startsWith("/admin") && role !== "admin") return NextResponse.redirect(new URL("/forbidden", request.url));
+    if (pathname.startsWith("/employee") && role !== "employee") return NextResponse.redirect(new URL("/forbidden", request.url));
     return NextResponse.next();
   } catch {
     const response = isProtected ? redirectToLogin(request) : NextResponse.next();
@@ -48,6 +28,4 @@ export async function middleware(request: NextRequest) {
   }
 }
 
-export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
-};
+export const config = { matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"] };

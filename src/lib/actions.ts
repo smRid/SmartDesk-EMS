@@ -1,8 +1,8 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { compare, hash } from "bcrypt";
-import { and, count, desc, eq, gte, inArray, isNull, lte, ne, sql, sum } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte, inArray, isNull, lte, ne, sql, sum } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/db";
@@ -18,6 +18,7 @@ import {
   leaveLedger,
   leavePolicies,
   leaveRequests,
+  passwordResetTokens,
   salaries,
   shiftAssignments,
   users,
@@ -35,8 +36,10 @@ import {
   employeeCreateSchema,
   employeeProfileSchema,
   employeeUpdateSchema,
+  forgotPasswordSchema,
   leaveRequestSchema,
   loginSchema,
+  resetPasswordSchema,
   salarySchema,
   shiftAssignmentSchema,
   workShiftSchema,
@@ -51,6 +54,8 @@ import { calculateLeaveDays } from "@/lib/utils";
 import { canRequestLeave, countChargeableLeaveDays, getLeaveCycle } from "@/lib/leave-accounting";
 import { calculateLateMinutes, calculateWorkedMinutes, isEligibleForAttendance, ownsAttendanceRecord, resolveShiftWorkDate } from "@/lib/attendance";
 import { calculateSalaryTotal } from "@/lib/payroll";
+import { deliverPasswordReset, hashResetToken } from "@/lib/password-reset";
+import { env } from "@/lib/env";
 
 type ActionResult = {
   fieldErrors?: Record<string, string[] | undefined>;
@@ -78,7 +83,7 @@ const getValue = (formData: FormData, key: string) =>
   `${formData.get(key) ?? ""}`.trim();
 
 async function writeAuditLog(
-  actorUserId: string,
+  actorUserId: string | null,
   action: string,
   entityType: string,
   entityId: string,
@@ -102,7 +107,7 @@ export async function loginAction(input: LoginInput): Promise<ActionResult> {
   const email = parsed.data.email.toLowerCase();
   const headerStore = await headers();
   const limitKey = `${headerStore.get("x-forwarded-for") ?? "local"}:${email}`;
-  const rate = checkRateLimit(limitKey);
+  const rate = await checkRateLimit(limitKey, { limit: 5, windowMs: 15 * 60 * 1000 });
 
   if (!rate.allowed) {
     return failure(`Too many login attempts. Try again in ${rate.retryAfter} seconds.`);
@@ -111,17 +116,20 @@ export async function loginAction(input: LoginInput): Promise<ActionResult> {
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
   if (!user || !user.isActive) {
+    await writeAuditLog(null, "auth.login_failed", "auth", createHash("sha256").update(email).digest("hex"));
     return failure("Invalid email or password.");
   }
 
   const isValidPassword = await compare(parsed.data.password, user.passwordHash);
 
   if (!isValidPassword) {
+    await writeAuditLog(user.id, "auth.login_failed", "user", user.id);
     return failure("Invalid email or password.");
   }
 
-  clearRateLimit(limitKey);
-  await createSession({ id: user.id, role: user.role });
+  await clearRateLimit(limitKey);
+  await createSession({ id: user.id, role: user.role, sessionVersion: user.sessionVersion });
+  await writeAuditLog(user.id, "auth.login_succeeded", "user", user.id);
 
   return success(
     "Signed in successfully.",
@@ -129,7 +137,49 @@ export async function loginAction(input: LoginInput): Promise<ActionResult> {
   );
 }
 
+export async function forgotPasswordAction(input: { email: string }): Promise<ActionResult> {
+  const parsed = forgotPasswordSchema.safeParse(input);
+  const generic = success("If an active account matches that email, a reset link will be sent.");
+  if (!parsed.success) return generic;
+  const email = parsed.data.email.toLowerCase();
+  const headerStore = await headers();
+  const clientKey = (headerStore.get("x-forwarded-for")?.split(",")[0] ?? "local").trim();
+  const limit = await checkRateLimit("password-reset:" + clientKey + ":" + email, { limit: 3, windowMs: 60 * 60 * 1000 });
+  if (!limit.allowed) return generic;
+  const [user] = await db.select({ email: users.email, id: users.id, isActive: users.isActive }).from(users).where(eq(users.email, email)).limit(1);
+  if (!user?.isActive) return generic;
+  const token = randomBytes(32).toString("base64url");
+  await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(and(eq(passwordResetTokens.userId, user.id), isNull(passwordResetTokens.usedAt)));
+  await db.insert(passwordResetTokens).values({ expiresAt: new Date(Date.now() + 30 * 60 * 1000), tokenHash: hashResetToken(token), userId: user.id });
+  const resetUrl = new URL("/reset-password", env.NEXT_PUBLIC_APP_URL);
+  resetUrl.searchParams.set("token", token);
+  const delivered = await deliverPasswordReset(user.email, resetUrl.toString()).catch(() => false);
+  await writeAuditLog(user.id, delivered ? "password_reset.requested" : "password_reset.delivery_failed", "user", user.id);
+  return generic;
+}
+
+export async function resetPasswordAction(input: { password: string; token: string }): Promise<ActionResult> {
+  const parsed = resetPasswordSchema.safeParse(input);
+  if (!parsed.success) return failure("The reset link or password is invalid.", parsed.error.flatten().fieldErrors);
+  const [token] = await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(and(
+    eq(passwordResetTokens.tokenHash, hashResetToken(parsed.data.token)),
+    isNull(passwordResetTokens.usedAt),
+    gt(passwordResetTokens.expiresAt, new Date()),
+  )).returning({ userId: passwordResetTokens.userId });
+  if (!token) return failure("This reset link is invalid or has expired.");
+  const [changed] = await db.update(users).set({
+    passwordHash: await hash(parsed.data.password, 12),
+    sessionVersion: sql`${users.sessionVersion} + 1`,
+    updatedAt: new Date(),
+  }).where(and(eq(users.id, token.userId), eq(users.isActive, true))).returning({ id: users.id });
+  if (!changed) return failure("This reset link is invalid or has expired.");
+  await writeAuditLog(changed.id, "password_reset.completed", "user", changed.id);
+  return success("Password reset successfully. You can now sign in.", "/login");
+}
+
 export async function logoutAction(): Promise<ActionResult> {
+  const session = await requireAuth();
+  await db.update(users).set({ sessionVersion: sql`${users.sessionVersion} + 1`, updatedAt: new Date() }).where(eq(users.id, session.id));
   await destroySession();
   return success("Signed out successfully.", "/login");
 }
@@ -159,14 +209,16 @@ export async function changePasswordAction(
   await db
     .update(users)
     .set({
-      passwordHash: await hash(parsed.data.newPassword, 10),
+      passwordHash: await hash(parsed.data.newPassword, 12),
+      sessionVersion: sql`${users.sessionVersion} + 1`,
       updatedAt: new Date(),
     })
     .where(eq(users.id, session.id));
 
   await writeAuditLog(session.id, "password.changed", "user", session.id);
+  await destroySession();
 
-  return success("Password changed successfully.");
+  return success("Password changed successfully. Sign in again.", "/login");
 }
 
 export async function updateAdminProfileAction(
@@ -432,7 +484,7 @@ export async function createEmployeeAction(formData: FormData): Promise<ActionRe
       employeeId: parsed.data.employeeId,
       isActive: parsed.data.status !== "inactive",
       name: parsed.data.name,
-      passwordHash: await hash(parsed.data.password, 10),
+      passwordHash: await hash(parsed.data.password, 12),
       role: parsed.data.role,
     })
     .returning({ id: users.id });
@@ -545,6 +597,7 @@ export async function updateEmployeeAction(
       email: parsed.data.email,
       employeeId: parsed.data.employeeId,
       isActive: parsed.data.status !== "inactive",
+      sessionVersion: parsed.data.status === "inactive" ? sql`${users.sessionVersion} + 1` : users.sessionVersion,
       name: parsed.data.name,
       role: parsed.data.role,
       updatedAt: new Date(),
@@ -611,6 +664,7 @@ export async function deleteEmployeeAction(
     .update(users)
     .set({
       isActive: false,
+      sessionVersion: sql`${users.sessionVersion} + 1`,
       updatedAt: new Date(),
     })
     .where(eq(users.id, record.userId));
@@ -641,7 +695,7 @@ export async function reactivateEmployeeAction(
 
   if (!record) return failure("Employee record was not found.");
 
-  await db.update(users).set({ isActive: true, updatedAt: new Date() })
+  await db.update(users).set({ isActive: true, sessionVersion: sql`${users.sessionVersion} + 1`, updatedAt: new Date() })
     .where(eq(users.id, record.userId));
   await db.update(employees).set({ status: "active", updatedAt: new Date() })
     .where(eq(employees.id, employeeRecordId));

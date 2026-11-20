@@ -12,6 +12,13 @@ export const loginSchema = z.object({
   email: z.string().trim().email("Enter a valid email address."),
   password: z.string().min(8, "Password must be at least 8 characters."),
 });
+export const forgotPasswordSchema = z.object({ email: z.string().trim().email("Enter a valid email address.") });
+export const resetPasswordSchema = z.object({
+  token: z.string().min(40, "Reset link is invalid."),
+  password: z.string().min(12, "Password must be at least 12 characters.")
+    .regex(/[a-z]/, "Add a lowercase letter.").regex(/[A-Z]/, "Add an uppercase letter.")
+    .regex(/[0-9]/, "Add a number.").regex(/[^A-Za-z0-9]/, "Add a special character."),
+});
 
 export const departmentSchema = z.object({
   name: z.string().trim().min(2, "Department name is required."),
@@ -36,7 +43,9 @@ const baseEmployeeSchema = z.object({
 });
 
 export const employeeCreateSchema = baseEmployeeSchema.extend({
-  password: z.string().min(8, "Password must be at least 8 characters."),
+  password: z.string().min(12, "Password must be at least 12 characters.")
+    .regex(/[a-z]/, "Add a lowercase letter.").regex(/[A-Z]/, "Add an uppercase letter.")
+    .regex(/[0-9]/, "Add a number.").regex(/[^A-Za-z0-9]/, "Add a special character."),
 });
 
 export const employeeUpdateSchema = baseEmployeeSchema;
@@ -76,7 +85,9 @@ export const salarySchema = z.object({
 export const changePasswordSchema = z
   .object({
     oldPassword: z.string().min(8, "Old password is required."),
-    newPassword: z.string().min(8, "New password must be at least 8 characters."),
+    newPassword: z.string().min(12, "New password must be at least 12 characters.")
+      .regex(/[a-z]/, "Add a lowercase letter.").regex(/[A-Z]/, "Add an uppercase letter.")
+      .regex(/[0-9]/, "Add a number.").regex(/[^A-Za-z0-9]/, "Add a special character."),
     confirmPassword: z.string().min(8, "Confirm the new password."),
   })
   .superRefine((value, ctx) => {

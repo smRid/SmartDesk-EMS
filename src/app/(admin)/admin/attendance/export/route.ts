@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getAdminAttendanceData } from "@/lib/queries";
 import { checkRateLimit } from "@/lib/rate-limit";
-const csv = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+import { safeCsvCell as csv } from "@/lib/security-policy";
 export async function GET(request: Request) {
   const session = await requireAuth("admin");
-  const rate = checkRateLimit(`attendance-export:${session.id}`, { limit: 3, windowMs: 60_000 });
+  const rate = await checkRateLimit(`attendance-export:${session.id}`, { limit: 3, windowMs: 60_000 });
   if (!rate.allowed) return NextResponse.json({ message: "Export limit reached." }, { status: 429, headers: { "Retry-After": String(rate.retryAfter ?? 60) } });
   const url = new URL(request.url); const data = await getAdminAttendanceData({ date: url.searchParams.get("date") ?? "", month: url.searchParams.get("month") ?? "" });
   const body = [["Work date","Employee ID","Employee","Shift","Check in UTC","Check out UTC","Worked minutes","Late minutes","Status"], ...data.records.map((row) => [row.attendance.workDate,row.employeeCode,row.employeeName,row.shiftName,row.attendance.checkInAt.toISOString(),row.attendance.checkOutAt?.toISOString(),row.attendance.workedMinutes,row.attendance.lateMinutes,row.attendance.status])].map((row) => row.map(csv).join(",")).join("\r\n");

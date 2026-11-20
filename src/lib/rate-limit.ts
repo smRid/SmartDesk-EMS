@@ -1,51 +1,34 @@
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
+import "server-only";
 
-const attempts = new Map<string, RateLimitEntry>();
+import { createHash } from "node:crypto";
+import { eq, sql } from "drizzle-orm";
+import { db } from "@/db";
+import { authRateLimits } from "@/db/schema";
+import { rateLimitOutcome } from "@/lib/security-policy";
 
-export function checkRateLimit(
+const hashKey = (key: string) => createHash("sha256").update(key).digest("hex");
+
+export async function checkRateLimit(
   key: string,
-  options?: {
-    limit?: number;
-    windowMs?: number;
-  },
+  options?: { limit?: number; windowMs?: number },
 ) {
   const limit = options?.limit ?? 5;
   const windowMs = options?.windowMs ?? 5 * 60 * 1000;
-  const now = Date.now();
-  const current = attempts.get(key);
-
-  if (!current || current.resetAt < now) {
-    attempts.set(key, {
-      count: 1,
-      resetAt: now + windowMs,
-    });
-
-    return {
-      allowed: true,
-      remaining: limit - 1,
-    };
-  }
-
-  if (current.count >= limit) {
-    return {
-      allowed: false,
-      remaining: 0,
-      retryAfter: Math.ceil((current.resetAt - now) / 1000),
-    };
-  }
-
-  current.count += 1;
-  attempts.set(key, current);
-
-  return {
-    allowed: true,
-    remaining: limit - current.count,
-  };
+  const now = new Date();
+  const resetAt = new Date(now.getTime() + windowMs);
+  const [entry] = await db.insert(authRateLimits).values({
+    count: 1, keyHash: hashKey(key), resetAt, updatedAt: now,
+  }).onConflictDoUpdate({
+    target: authRateLimits.keyHash,
+    set: {
+      count: sql`case when ${authRateLimits.resetAt} <= ${now} then 1 else ${authRateLimits.count} + 1 end`,
+      resetAt: sql`case when ${authRateLimits.resetAt} <= ${now} then ${resetAt} else ${authRateLimits.resetAt} end`,
+      updatedAt: now,
+    },
+  }).returning({ count: authRateLimits.count, resetAt: authRateLimits.resetAt });
+  return rateLimitOutcome(entry.count, limit, entry.resetAt, now);
 }
 
-export function clearRateLimit(key: string) {
-  attempts.delete(key);
+export async function clearRateLimit(key: string) {
+  await db.delete(authRateLimits).where(eq(authRateLimits.keyHash, hashKey(key)));
 }

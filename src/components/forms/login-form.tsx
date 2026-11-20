@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -142,6 +143,7 @@ export function LoginForm() {
         {isPending ? "Signing in..." : "Sign in"}
         {!isPending && <ArrowRight className="size-4" aria-hidden="true" />}
       </Button>
+      <div className="text-center"><Link className="text-sm font-semibold text-teal-800 dark:text-teal-300" href="/forgot-password">Forgot password?</Link></div>
     </form>
   );
 }

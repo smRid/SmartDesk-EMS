@@ -134,7 +134,7 @@ async function seedAdmin() {
     return existing[0].id;
   }
 
-  const passwordHash = await hash(env.ADMIN_PASSWORD, 10);
+  const passwordHash = await hash(env.ADMIN_PASSWORD, 12);
 
   const [admin] = await db
     .insert(users)
@@ -151,7 +151,8 @@ async function seedAdmin() {
 }
 
 async function seedEmployees(departmentMap: Map<string, string>) {
-  const passwordHash = await hash("employee123", 10);
+  if (!env.SEED_EMPLOYEE_PASSWORD) throw new Error("SEED_EMPLOYEE_PASSWORD is required when seeding employees.");
+  const passwordHash = await hash(env.SEED_EMPLOYEE_PASSWORD, 12);
   const employeeRecordIds: string[] = [];
 
   for (const item of employeeSeed) {

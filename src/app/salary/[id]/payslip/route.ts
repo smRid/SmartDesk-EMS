@@ -17,7 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (session.role !== "admin" && session.employeeRecordId !== record.employee.id) {
     return NextResponse.json({ message: "Payslip not found." }, { status: 404 });
   }
-  const rate = checkRateLimit(`payslip:${session.id}`, { limit: 10, windowMs: 60_000 });
+  const rate = await checkRateLimit(`payslip:${session.id}`, { limit: 10, windowMs: 60_000 });
   if (!rate.allowed) return NextResponse.json({ message: "Download limit reached." }, { status: 429, headers: { "Retry-After": String(rate.retryAfter ?? 60) } });
   const pdf = createPayslipPdf({
     allowance: record.salary.allowance, basicSalary: record.salary.basicSalary, currency: record.salary.currency,

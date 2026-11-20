@@ -62,6 +62,7 @@ type SalaryFilters = {
 };
 
 export async function getDepartmentOptions() {
+  await requireAuth("admin");
   return db
     .select({
       id: departments.id,
@@ -72,6 +73,8 @@ export async function getDepartmentOptions() {
 }
 
 export async function getEmployeeAttendanceData(employeeId: string, month: string) {
+  const session = await requireAuth();
+  if (session.role !== "admin" && session.employeeRecordId !== employeeId) return { adjustments: [], open: null, records: [] };
   const monthStart = /^\d{4}-\d{2}$/.test(month) ? `${month}-01` : `${new Date().toISOString().slice(0, 7)}-01`;
   const next = new Date(`${monthStart}T00:00:00Z`); next.setUTCMonth(next.getUTCMonth() + 1);
   const monthEnd = next.toISOString().slice(0, 10);
@@ -84,6 +87,7 @@ export async function getEmployeeAttendanceData(employeeId: string, month: strin
 }
 
 export async function getAdminAttendanceData(filters: { date?: string; month?: string } = {}) {
+  await requireAuth("admin");
   const conditions = [];
   if (filters.date) conditions.push(eq(attendanceRecords.workDate, filters.date));
   else if (filters.month && /^\d{4}-\d{2}$/.test(filters.month)) {
@@ -106,6 +110,7 @@ export async function getAdminAttendanceData(filters: { date?: string; month?: s
 }
 
 export async function getLeavePolicyAdminData() {
+  await requireAuth("admin");
   const [policies, holidays] = await Promise.all([
     db.select().from(leavePolicies).orderBy(leavePolicies.leaveType),
     db.select().from(holidayCalendar).where(eq(holidayCalendar.isActive, true)).orderBy(holidayCalendar.holidayDate),
@@ -114,6 +119,8 @@ export async function getLeavePolicyAdminData() {
 }
 
 export async function getEmployeeLeaveBalances(employeeId: string) {
+  const session = await requireAuth();
+  if (session.role !== "admin" && session.employeeRecordId !== employeeId) return [];
   const [rows, policies, [employee]] = await Promise.all([db.select({
     cycleStart: leaveLedger.cycleStart,
     leaveType: leaveLedger.leaveType,
@@ -131,6 +138,7 @@ export async function getEmployeeLeaveBalances(employeeId: string) {
 }
 
 export async function getLeaveApprovalHistory(requestId: string) {
+  await requireAuth("admin");
   return db.select({
     actorName: users.name,
     createdAt: leaveApprovalHistory.createdAt,
@@ -146,6 +154,7 @@ export async function getLeaveApprovalHistory(requestId: string) {
 }
 
 export async function getActiveEmployeeOptions(departmentId?: string) {
+  await requireAuth("admin");
   const conditions = [eq(users.isActive, true), eq(employees.status, "active")];
 
   if (departmentId && departmentId !== "all") {
@@ -166,6 +175,7 @@ export async function getActiveEmployeeOptions(departmentId?: string) {
 }
 
 export async function getDepartmentsList(query = "") {
+  await requireAuth("admin");
   const departmentRows = await db
     .select()
     .from(departments)
@@ -200,6 +210,7 @@ export async function getDepartmentsList(query = "") {
 }
 
 export async function getEmployeesList(filters: EmployeeFilters = {}) {
+  await requireAuth("admin");
   const conditions = [];
 
   if (filters.query) {
@@ -279,6 +290,7 @@ export async function getEmployeeActivity(employeeRecordId: string) {
 }
 
 export async function getEmployeeDetails(employeeRecordId: string) {
+  await requireAuth("admin");
   const [record] = await db
     .select({
       department: departments,
@@ -327,6 +339,8 @@ export async function getEmployeeDetails(employeeRecordId: string) {
 }
 
 export async function getLeaveList(filters: LeaveFilters = {}) {
+  const session = await requireAuth();
+  if (session.role === "employee") filters.employeeRecordId = session.employeeRecordId ?? undefined;
   const conditions = [];
 
   if (filters.query) {
@@ -382,6 +396,7 @@ export async function getLeaveList(filters: LeaveFilters = {}) {
 }
 
 export async function getLeaveDetails(leaveId: string) {
+  await requireAuth("admin");
   const [leave] = await getLeaveList().then((items) =>
     items.filter((item) => item.id === leaveId),
   );
@@ -390,6 +405,11 @@ export async function getLeaveDetails(leaveId: string) {
 }
 
 export async function getSalaryList(filters: SalaryFilters = {}) {
+  const session = await requireAuth();
+  if (session.role === "employee") {
+    filters.employeeRecordId = session.employeeRecordId ?? undefined;
+    filters.publishedOnly = true;
+  }
   const conditions = [];
 
   if (filters.query) {

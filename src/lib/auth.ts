@@ -9,10 +9,12 @@ import { db } from "@/db";
 import { departments, employees, users } from "@/db/schema";
 import { SESSION_COOKIE_NAME, type UserRole } from "@/lib/constants";
 import { env } from "@/lib/env";
+import { isSessionVersionCurrent } from "@/lib/authorization";
 
 type SessionPayload = {
   role: UserRole;
   sub: string;
+  sv: number;
 };
 
 export type SessionUser = {
@@ -34,12 +36,16 @@ async function signToken(payload: SessionPayload) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
+    .setIssuer("smartdesk-ems")
+    .setAudience("smartdesk-ems")
     .setExpirationTime("7d")
     .sign(secret);
 }
 
 async function verifyToken(token: string) {
-  const { payload } = await jwtVerify<SessionPayload>(token, secret);
+  const { payload } = await jwtVerify<SessionPayload>(token, secret, {
+    algorithms: ["HS256"], audience: "smartdesk-ems", issuer: "smartdesk-ems",
+  });
   return payload;
 }
 
@@ -47,10 +53,11 @@ export function getDashboardRedirect(role: UserRole) {
   return role === "admin" ? "/admin/dashboard" : "/employee/dashboard";
 }
 
-export async function createSession(user: { id: string; role: UserRole }) {
+export async function createSession(user: { id: string; role: UserRole; sessionVersion: number }) {
   const token = await signToken({
     role: user.role,
     sub: user.id,
+    sv: user.sessionVersion,
   });
 
   const cookieStore = await cookies();
@@ -58,6 +65,7 @@ export async function createSession(user: { id: string; role: UserRole }) {
     httpOnly: true,
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
+    priority: "high",
     sameSite: "lax",
     secure: env.NODE_ENV === "production",
   });
@@ -91,7 +99,7 @@ export const getCurrentSession = cache(async (): Promise<SessionUser | null> => 
       .where(eq(users.id, payload.sub))
       .limit(1);
 
-    if (!record || !record.user.isActive) {
+    if (!record || !isSessionVersionCurrent(payload.sv, record.user.sessionVersion, record.user.isActive)) {
       return null;
     }
 

@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { changePasswordAction } from "@/lib/actions";
@@ -15,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function ChangePasswordForm() {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const form = useForm<ChangePasswordInput>({
     defaultValues: {
@@ -41,6 +43,7 @@ export function ChangePasswordForm() {
 
       toast.success(result.message);
       form.reset();
+      if (result.redirectTo) router.push(result.redirectTo);
     });
   });
 
