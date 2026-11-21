@@ -49,6 +49,7 @@ type EmployeeFilters = {
 type LeaveFilters = {
   employeeRecordId?: string;
   leaveId?: string;
+  limit?: number;
   query?: string;
   status?: string;
 };
@@ -60,6 +61,7 @@ type SalaryFilters = {
   to?: string;
   status?: string;
   publishedOnly?: boolean;
+  limit?: number;
 };
 
 export async function getDepartmentOptions() {
@@ -177,9 +179,18 @@ export async function getActiveEmployeeOptions(departmentId?: string) {
 
 export async function getDepartmentsList(query = "") {
   await requireAuth("admin");
-  const departmentRows = await db
-    .select()
+  return db
+    .select({
+      createdAt: departments.createdAt,
+      description: departments.description,
+      employeeCount: count(users.id),
+      id: departments.id,
+      name: departments.name,
+      updatedAt: departments.updatedAt,
+    })
     .from(departments)
+    .leftJoin(employees, eq(employees.departmentId, departments.id))
+    .leftJoin(users, and(eq(users.id, employees.userId), eq(users.isActive, true)))
     .where(
       query
         ? or(
@@ -188,26 +199,8 @@ export async function getDepartmentsList(query = "") {
           )
         : undefined,
     )
+    .groupBy(departments.id)
     .orderBy(departments.name);
-
-  const employeeRows = await db
-    .select({
-      departmentId: employees.departmentId,
-      userActive: users.isActive,
-    })
-    .from(employees)
-    .innerJoin(users, eq(users.id, employees.userId));
-
-  return departmentRows.map((department) => {
-    const employeeCount = employeeRows.filter(
-      (row) => row.departmentId === department.id && row.userActive,
-    ).length;
-
-    return {
-      ...department,
-      employeeCount,
-    };
-  });
 }
 
 export async function getEmployeesList(filters: EmployeeFilters = {}) {
@@ -309,9 +302,10 @@ export async function getEmployeeDetails(employeeRecordId: string) {
     return null;
   }
 
-  const [employeeLeaves, employeeSalaries] = await Promise.all([
-    getLeaveList({ employeeRecordId }),
-    getSalaryList({ employeeRecordId }),
+  const [employeeLeaves, employeeSalaries, leaveCountRows] = await Promise.all([
+    getLeaveList({ employeeRecordId, limit: 5 }),
+    getSalaryList({ employeeRecordId, limit: 5 }),
+    db.select({ value: count() }).from(leaveRequests).where(eq(leaveRequests.employeeId, employeeRecordId)),
   ]);
 
   return {
@@ -328,12 +322,12 @@ export async function getEmployeeDetails(employeeRecordId: string) {
     imageUrl: record.employee.imageUrl,
     isActive: record.user.isActive,
     joiningDate: record.employee.joiningDate,
-    leaveCount: employeeLeaves.length,
+    leaveCount: leaveCountRows[0]?.value ?? 0,
     maritalStatus: record.employee.maritalStatus,
     name: record.user.name,
     phone: record.employee.phone,
-    recentLeaves: employeeLeaves.slice(0, 5),
-    recentSalaries: employeeSalaries.slice(0, 5),
+    recentLeaves: employeeLeaves,
+    recentSalaries: employeeSalaries,
     role: record.user.role,
     status: record.employee.status,
     userId: record.user.id,
@@ -366,38 +360,40 @@ export async function getLeaveList(filters: LeaveFilters = {}) {
     conditions.push(eq(leaveRequests.id, filters.leaveId));
   }
 
-  const rows = await db
+  let rowsQuery = db
     .select({
-      department: departments,
-      employee: employees,
-      leave: leaveRequests,
-      user: users,
+      adminNote: leaveRequests.adminNote,
+      appliedAt: leaveRequests.appliedAt,
+      chargeDays: leaveRequests.chargeDays,
+      dayFraction: leaveRequests.dayFraction,
+      departmentName: departments.name,
+      employeeCode: employees.employeeId,
+      employeeImageUrl: employees.imageUrl,
+      employeeName: users.name,
+      employeeRecordId: employees.id,
+      endDate: leaveRequests.endDate,
+      id: leaveRequests.id,
+      leaveType: leaveRequests.leaveType,
+      reason: leaveRequests.reason,
+      reviewedAt: leaveRequests.reviewedAt,
+      startDate: leaveRequests.startDate,
+      status: leaveRequests.status,
+      totalDays: leaveRequests.totalDays,
     })
     .from(leaveRequests)
     .innerJoin(employees, eq(employees.id, leaveRequests.employeeId))
     .innerJoin(users, eq(users.id, employees.userId))
     .leftJoin(departments, eq(employees.departmentId, departments.id))
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(leaveRequests.appliedAt));
+    .orderBy(desc(leaveRequests.appliedAt))
+    .$dynamic();
+
+  if (filters.limit) rowsQuery = rowsQuery.limit(filters.limit);
+  const rows = await rowsQuery;
 
   return rows.map((row) => ({
-    adminNote: row.leave.adminNote,
-    appliedAt: row.leave.appliedAt,
-    chargeDays: row.leave.chargeDays,
-    dayFraction: row.leave.dayFraction,
-    departmentName: row.department?.name ?? "Unassigned",
-    employeeCode: row.employee.employeeId,
-    employeeImageUrl: row.employee.imageUrl,
-    employeeName: row.user.name,
-    employeeRecordId: row.employee.id,
-    endDate: row.leave.endDate,
-    id: row.leave.id,
-    leaveType: row.leave.leaveType,
-    reason: row.leave.reason,
-    reviewedAt: row.leave.reviewedAt,
-    startDate: row.leave.startDate,
-    status: row.leave.status,
-    totalDays: row.leave.totalDays,
+    ...row,
+    departmentName: row.departmentName ?? "Unassigned",
   }));
 }
 
@@ -441,36 +437,38 @@ export async function getSalaryList(filters: SalaryFilters = {}) {
     conditions.push(eq(salaries.status, filters.status as "draft"));
   }
 
-  const rows = await db
+  let rowsQuery = db
     .select({
-      department: departments,
-      employee: employees,
-      salary: salaries,
-      user: users,
+      allowance: salaries.allowance,
+      basicSalary: salaries.basicSalary,
+      createdBy: salaries.createdBy,
+      currency: salaries.currency,
+      deduction: salaries.deduction,
+      departmentName: departments.name,
+      employeeCode: employees.employeeId,
+      employeeName: users.name,
+      employeeRecordId: employees.id,
+      id: salaries.id,
+      payDate: salaries.payDate,
+      periodEnd: salaries.periodEnd,
+      periodStart: salaries.periodStart,
+      status: salaries.status,
+      totalSalary: salaries.totalSalary,
     })
     .from(salaries)
     .innerJoin(employees, eq(employees.id, salaries.employeeId))
     .innerJoin(users, eq(users.id, employees.userId))
     .leftJoin(departments, eq(salaries.departmentId, departments.id))
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(salaries.payDate));
+    .orderBy(desc(salaries.payDate))
+    .$dynamic();
+
+  if (filters.limit) rowsQuery = rowsQuery.limit(filters.limit);
+  const rows = await rowsQuery;
 
   return rows.map((row) => ({
-    allowance: row.salary.allowance,
-    basicSalary: row.salary.basicSalary,
-    deduction: row.salary.deduction,
-    departmentName: row.department?.name ?? "Unassigned",
-    employeeCode: row.employee.employeeId,
-    employeeName: row.user.name,
-    employeeRecordId: row.employee.id,
-    id: row.salary.id,
-    currency: row.salary.currency,
-    payDate: row.salary.payDate,
-    periodEnd: row.salary.periodEnd,
-    periodStart: row.salary.periodStart,
-    status: row.salary.status,
-    createdBy: row.salary.createdBy,
-    totalSalary: row.salary.totalSalary,
+    ...row,
+    departmentName: row.departmentName ?? "Unassigned",
   }));
 }
 

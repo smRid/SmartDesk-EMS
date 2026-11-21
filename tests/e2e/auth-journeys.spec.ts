@@ -7,7 +7,8 @@ test("admin login, role boundary, and logout", async ({ page }) => {
   await page.goto("/employee/dashboard");
   await expect(page).toHaveURL(/\/forbidden/);
   await page.goto("/admin/dashboard");
-  await page.getByRole("button", { name: /log out|sign out/i }).click();
+  await page.getByRole("button", { name: /Open profile menu/ }).click();
+  await page.getByRole("button", { name: /logout|sign out/i }).click();
   await expect(page).toHaveURL(/\/login/);
 });
 
@@ -18,6 +19,7 @@ test("employee login, role boundary, salary page, and logout", async ({ page }) 
   await expect(page).toHaveURL(/\/forbidden/);
   await page.goto("/employee/salary");
   await expect(page.getByRole("heading", { name: /salary/i })).toBeVisible();
-  await page.getByRole("button", { name: /log out|sign out/i }).click();
+  await page.getByRole("button", { name: /Open profile menu/ }).click();
+  await page.getByRole("button", { name: /logout|sign out/i }).click();
   await expect(page).toHaveURL(/\/login/);
 });

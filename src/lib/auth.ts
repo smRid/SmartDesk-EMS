@@ -89,9 +89,18 @@ export const getCurrentSession = cache(async (): Promise<SessionUser | null> => 
 
     const [record] = await db
       .select({
-        department: departments,
-        employee: employees,
-        user: users,
+        departmentName: departments.name,
+        designation: employees.designation,
+        email: users.email,
+        employeeCode: employees.employeeId,
+        employeeRecordId: employees.id,
+        id: users.id,
+        imageUrl: employees.imageUrl,
+        isActive: users.isActive,
+        name: users.name,
+        role: users.role,
+        sessionVersion: users.sessionVersion,
+        userEmployeeCode: users.employeeId,
       })
       .from(users)
       .leftJoin(employees, eq(employees.userId, users.id))
@@ -99,21 +108,21 @@ export const getCurrentSession = cache(async (): Promise<SessionUser | null> => 
       .where(eq(users.id, payload.sub))
       .limit(1);
 
-    if (!record || !isSessionVersionCurrent(payload.sv, record.user.sessionVersion, record.user.isActive)) {
+    if (!record || !isSessionVersionCurrent(payload.sv, record.sessionVersion, record.isActive)) {
       return null;
     }
 
     return {
-      departmentName: record.department?.name ?? null,
-      designation: record.employee?.designation ?? null,
-      email: record.user.email,
-      employeeCode: record.employee?.employeeId ?? record.user.employeeId ?? null,
-      employeeRecordId: record.employee?.id ?? null,
-      id: record.user.id,
-      imageUrl: record.employee?.imageUrl ?? null,
-      isActive: record.user.isActive,
-      name: record.user.name,
-      role: record.user.role,
+      departmentName: record.departmentName ?? null,
+      designation: record.designation ?? null,
+      email: record.email,
+      employeeCode: record.employeeCode ?? record.userEmployeeCode ?? null,
+      employeeRecordId: record.employeeRecordId ?? null,
+      id: record.id,
+      imageUrl: record.imageUrl ?? null,
+      isActive: record.isActive,
+      name: record.name,
+      role: record.role,
     };
   } catch {
     return null;
