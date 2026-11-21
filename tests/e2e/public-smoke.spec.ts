@@ -14,7 +14,7 @@ test("invalid credentials use a non-enumerating error", async ({ page, request }
   await page.getByLabel("Email address").fill("missing-account@example.com");
   await page.getByLabel("Password", { exact: true }).fill("invalid-password");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("alert")).toContainText("Invalid email or password");
+  await expect(page.locator("#login-authentication-error")).toContainText("Invalid email or password");
 });
 
 test("unknown routes render the accessible not-found page", async ({ page }) => {
