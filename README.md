@@ -67,11 +67,15 @@ Then open `http://localhost:3000`.
 
 Admin credentials are seeded from `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`.
 
-Employee seed password:
+Employee seed credentials must be supplied through `SEED_EMPLOYEE_PASSWORD`; no default password is stored in the repository.
 
-```text
-employee123
-```
+## Quality and release checks
+
+Run `npm run quality` for unit tests, isolated database integration tests, type checking, linting, and the production build. Integration tests run only when `TEST_DATABASE_URL` points to a migrated database distinct from the normal application database.
+
+Run `npx playwright install chromium` once, then `npm run test:e2e:smoke` for safe public smoke tests. Authenticated and destructive browser journeys require the explicit E2E environment variables documented in [`docs/release-readiness.md`](docs/release-readiness.md).
+
+Deployment health is available at `GET /api/health`. Release order, migrations, verification, rollback, restore rehearsal, and known pending work are tracked in [`docs/release-readiness.md`](docs/release-readiness.md).
 
 ## Project structure
 

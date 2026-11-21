@@ -9,6 +9,10 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint",
     "test": "node --experimental-strip-types --test src/lib/*.test.ts",
+    "test:integration": "node --experimental-strip-types --test tests/integration/*.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test tests/e2e/public-smoke.spec.ts",
+    "quality": "npm test && npm run test:integration && npm run type-check && npm run lint && npm run build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -37,6 +41,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^20",

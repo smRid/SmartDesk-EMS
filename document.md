@@ -775,7 +775,7 @@ This section explains how an employee should use the platform step by step.
 
 Seeded employee password:
 
-- employee123
+- the value configured in `SEED_EMPLOYEE_PASSWORD`
 
 Step-by-step:
 
@@ -1340,7 +1340,7 @@ Checklist:
 4. Remember that reseeding does not update an older admin with a different email.
 5. Confirm password is correct:
    - admin uses `.env` admin password
-   - seeded employee users use `employee123`
+   - seeded employee users use the value configured in `SEED_EMPLOYEE_PASSWORD`
 6. Confirm `NEXTAUTH_SECRET` is set and is at least 32 characters.
 7. Restart the dev server after `.env` changes.
 
@@ -1604,5 +1604,11 @@ For daily usage:
 - database changes are controlled through Drizzle migrations
 - errors are handled through validation, route protection, and controlled
   server-side responses
+
+## Phase 11 release readiness
+
+The project now includes unit tests, an isolated PostgreSQL integration test, Playwright smoke and role/workflow suites, global error and not-found pages, a database-aware health endpoint, and structured redacted server logging through Next.js instrumentation.
+
+Use `npm run quality` for the non-browser quality gates and `npm run test:e2e` for browser journeys. Database-mutating browser tests are disabled unless an operator explicitly confirms an isolated test database. See `docs/release-readiness.md` for environment requirements, the verified behavior matrix, deployment sequence, rollback/restore procedure, performance notes, and remaining release decisions.
 
 End of document.

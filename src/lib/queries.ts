@@ -48,6 +48,7 @@ type EmployeeFilters = {
 
 type LeaveFilters = {
   employeeRecordId?: string;
+  leaveId?: string;
   query?: string;
   status?: string;
 };
@@ -361,6 +362,10 @@ export async function getLeaveList(filters: LeaveFilters = {}) {
     conditions.push(eq(leaveRequests.employeeId, filters.employeeRecordId));
   }
 
+  if (filters.leaveId) {
+    conditions.push(eq(leaveRequests.id, filters.leaveId));
+  }
+
   const rows = await db
     .select({
       department: departments,
@@ -398,9 +403,7 @@ export async function getLeaveList(filters: LeaveFilters = {}) {
 
 export async function getLeaveDetails(leaveId: string) {
   await requireAuth("admin");
-  const [leave] = await getLeaveList().then((items) =>
-    items.filter((item) => item.id === leaveId),
-  );
+  const [leave] = await getLeaveList({ leaveId });
 
   return leave ?? null;
 }

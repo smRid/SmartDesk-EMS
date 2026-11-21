@@ -6,7 +6,7 @@ import {
   LEAVE_TYPES,
   MARITAL_STATUS_OPTIONS,
   USER_ROLES,
-} from "@/lib/constants";
+} from "./constants.ts";
 
 export const loginSchema = z.object({
   email: z.string().trim().email("Enter a valid email address."),
