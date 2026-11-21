@@ -3,13 +3,11 @@ import { EmployeeProfileForm } from "@/components/forms/employee-profile-form";
 import { PageHeader } from "@/components/layout/page-header";
 import { Avatar } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { requireAuth } from "@/lib/auth";
 import { getEmployeeProfileData } from "@/lib/queries";
 import { formatDate } from "@/lib/utils";
 
 export default async function EmployeeProfilePage() {
-  const session = await requireAuth("employee");
-  const profile = await getEmployeeProfileData(session.id);
+  const profile = await getEmployeeProfileData();
 
   if (!profile) {
     return (

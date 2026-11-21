@@ -20,8 +20,8 @@
 
 ## Recovery and lockout policy
 
-- Login: five attempts per IP/email pair per 15-minute window.
-- Password reset: three requests per IP/email pair per hour, always returning the same public response.
+- Login: five attempts per client key and per account key per 15-minute window. Either limit starts the cooldown.
+- Password reset: three requests per client key and per account key per hour, always returning the same public response.
 - Successful login clears the login counter. Administrative account reactivation does not restore old sessions.
 - Reset completion and password changes increment `session_version`, revoking all existing sessions.
 

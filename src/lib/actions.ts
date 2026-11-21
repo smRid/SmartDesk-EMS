@@ -26,7 +26,7 @@ import {
 } from "@/db/schema";
 import { createSession, destroySession, requireAuth } from "@/lib/auth";
 import { deleteImage, uploadImage } from "@/lib/cloudinary";
-import { clearRateLimit, checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimits, clearRateLimit } from "@/lib/rate-limit";
 import {
   adminProfileSchema,
   attendanceCorrectionSchema,
@@ -106,10 +106,12 @@ export async function loginAction(input: LoginInput): Promise<ActionResult> {
 
   const email = parsed.data.email.toLowerCase();
   const headerStore = await headers();
-  const limitKey = `${headerStore.get("x-forwarded-for") ?? "local"}:${email}`;
-  const rate = await checkRateLimit(limitKey, { limit: 5, windowMs: 15 * 60 * 1000 });
+  const clientKey = (headerStore.get("x-forwarded-for")?.split(",")[0] ?? "local").trim();
+  const limitKeys = [`login:client:${clientKey}`, `login:account:${email}`];
+  const rate = await checkRateLimits(limitKeys, { limit: 5, windowMs: 15 * 60 * 1000 });
 
   if (!rate.allowed) {
+    await writeAuditLog(null, "auth.login_throttled", "auth", createHash("sha256").update(email).digest("hex"));
     return failure(`Too many login attempts. Try again in ${rate.retryAfter} seconds.`);
   }
 
@@ -127,7 +129,7 @@ export async function loginAction(input: LoginInput): Promise<ActionResult> {
     return failure("Invalid email or password.");
   }
 
-  await clearRateLimit(limitKey);
+  await Promise.all(limitKeys.map(clearRateLimit));
   await createSession({ id: user.id, role: user.role, sessionVersion: user.sessionVersion });
   await writeAuditLog(user.id, "auth.login_succeeded", "user", user.id);
 
@@ -144,7 +146,10 @@ export async function forgotPasswordAction(input: { email: string }): Promise<Ac
   const email = parsed.data.email.toLowerCase();
   const headerStore = await headers();
   const clientKey = (headerStore.get("x-forwarded-for")?.split(",")[0] ?? "local").trim();
-  const limit = await checkRateLimit("password-reset:" + clientKey + ":" + email, { limit: 3, windowMs: 60 * 60 * 1000 });
+  const limit = await checkRateLimits(
+    [`password-reset:client:${clientKey}`, `password-reset:account:${email}`],
+    { limit: 3, windowMs: 60 * 60 * 1000 },
+  );
   if (!limit.allowed) return generic;
   const [user] = await db.select({ email: users.email, id: users.id, isActive: users.isActive }).from(users).where(eq(users.email, email)).limit(1);
   if (!user?.isActive) return generic;
@@ -180,6 +185,7 @@ export async function resetPasswordAction(input: { password: string; token: stri
 export async function logoutAction(): Promise<ActionResult> {
   const session = await requireAuth();
   await db.update(users).set({ sessionVersion: sql`${users.sessionVersion} + 1`, updatedAt: new Date() }).where(eq(users.id, session.id));
+  await writeAuditLog(session.id, "auth.logout", "user", session.id);
   await destroySession();
   return success("Signed out successfully.", "/login");
 }

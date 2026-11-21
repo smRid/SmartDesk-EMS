@@ -7,7 +7,7 @@ import { getAdminProfileData } from "@/lib/queries";
 
 export default async function AdminSettingsPage() {
   const session = await requireAuth("admin");
-  const profile = await getAdminProfileData(session.id);
+  const profile = await getAdminProfileData();
 
   return (
     <div className="space-y-6">

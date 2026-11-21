@@ -7,6 +7,19 @@ export function rateLimitOutcome(count: number, limit: number, resetAt: Date, no
   };
 }
 
+export function mergeRateLimitOutcomes(
+  outcomes: Array<{ allowed: boolean; remaining: number; retryAfter?: number }>,
+) {
+  const blocked = outcomes.filter((outcome) => !outcome.allowed);
+  return {
+    allowed: blocked.length === 0,
+    remaining: Math.min(...outcomes.map((outcome) => outcome.remaining)),
+    retryAfter: blocked.length
+      ? Math.max(...blocked.map((outcome) => outcome.retryAfter ?? 1))
+      : undefined,
+  };
+}
+
 export function safeCsvCell(value: unknown) {
   const raw = String(value ?? "");
   const protectedValue = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;

@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { authRateLimits } from "@/db/schema";
-import { rateLimitOutcome } from "@/lib/security-policy";
+import { mergeRateLimitOutcomes, rateLimitOutcome } from "@/lib/security-policy";
 
 const hashKey = (key: string) => createHash("sha256").update(key).digest("hex");
 
@@ -27,6 +27,14 @@ export async function checkRateLimit(
     },
   }).returning({ count: authRateLimits.count, resetAt: authRateLimits.resetAt });
   return rateLimitOutcome(entry.count, limit, entry.resetAt, now);
+}
+
+export async function checkRateLimits(
+  keys: string[],
+  options?: { limit?: number; windowMs?: number },
+) {
+  const outcomes = await Promise.all(keys.map((key) => checkRateLimit(key, options)));
+  return mergeRateLimitOutcomes(outcomes);
 }
 
 export async function clearRateLimit(key: string) {

@@ -278,6 +278,7 @@ export async function getEmployeesList(filters: EmployeeFilters = {}) {
 }
 
 export async function getEmployeeActivity(employeeRecordId: string) {
+  await requireAuth("admin");
   return db.select({
     action: auditLogs.action,
     createdAt: auditLogs.createdAt,
@@ -857,11 +858,13 @@ export async function getEmployeeDashboardData(yearInput?: string) {
   };
 }
 
-export async function getEmployeeProfileData(userId: string) {
-  return getEmployeeProfileByUserId(userId);
+export async function getEmployeeProfileData() {
+  const session = await requireAuth("employee");
+  return getEmployeeProfileByUserId(session.id);
 }
 
-export async function getAdminProfileData(userId: string) {
+export async function getAdminProfileData() {
+  const session = await requireAuth("admin");
   const [user] = await db
     .select({
       email: users.email,
@@ -870,7 +873,7 @@ export async function getAdminProfileData(userId: string) {
       role: users.role,
     })
     .from(users)
-    .where(eq(users.id, userId))
+    .where(eq(users.id, session.id))
     .limit(1);
 
   return user ?? null;
