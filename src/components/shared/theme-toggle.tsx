@@ -38,7 +38,7 @@ function storeTheme(theme: Theme) {
 
 function readTheme(): Theme {
   if (typeof document === "undefined") {
-    return "light";
+    return "dark";
   }
 
   return document.documentElement.classList.contains("dark") ||
@@ -72,16 +72,16 @@ function setTheme(nextTheme: Theme) {
 }
 
 export function ThemeToggle({ className, compact = false }: { className?: string; compact?: boolean }) {
-  const theme = useSyncExternalStore(subscribeToTheme, readTheme, () => "light");
+  const theme = useSyncExternalStore(subscribeToTheme, readTheme, () => "dark");
   const isDark = theme === "dark";
   const label = isDark ? "Switch to light mode" : "Switch to dark mode";
 
   useLayoutEffect(() => {
     try {
       const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-      applyTheme(storedTheme === "dark" ? "dark" : "light");
+      applyTheme(storedTheme === "light" ? "light" : "dark");
     } catch {
-      applyTheme("light");
+      applyTheme("dark");
     }
   }, []);
 

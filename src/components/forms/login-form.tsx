@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, Eye, EyeOff, LockKeyhole } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useTransition } from "react";
@@ -69,14 +69,14 @@ export function LoginForm() {
         </div>
       ) : null}
       <div className="space-y-2">
-        <Label className="text-xs font-bold text-[#344e68] dark:text-slate-200" htmlFor="email">
-          Email address
+        <Label className="flex items-center gap-2 text-sm font-semibold text-[#344e68] dark:text-slate-200" htmlFor="email">
+          <Mail className="size-4" aria-hidden="true" /> Email address
         </Label>
         <Input
           aria-describedby={form.formState.errors.email ? "login-email-error" : undefined}
           aria-invalid={Boolean(form.formState.errors.email)}
           autoComplete="username"
-          className="h-12 rounded-xl border-[#d7e4eb] bg-white px-4 text-[#17324d] shadow-none placeholder:text-[#8a9aac] focus-visible:border-[#149b91] focus-visible:ring-[#149b91]/20 dark:border-slate-600 dark:bg-[#102837] dark:text-white"
+          className="h-13 rounded-xl border-[#d7e4eb] bg-white px-4 text-[#17324d] shadow-none placeholder:text-[#8a9aac] focus-visible:border-[#149b91] focus-visible:ring-[#149b91]/20 dark:border-slate-600 dark:bg-[#102837] dark:text-white"
           id="email"
           placeholder="name@company.com"
           spellCheck={false}
@@ -88,22 +88,17 @@ export function LoginForm() {
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2 sm:gap-3">
-          <Label
-            className="text-xs font-bold text-[#344e68] dark:text-slate-200"
-            htmlFor="password"
-          >
-            Password
+          <Label className="flex items-center gap-2 text-sm font-semibold text-[#344e68] dark:text-slate-200" htmlFor="password">
+            <LockKeyhole className="size-4" aria-hidden="true" /> Password
           </Label>
-          <span className="text-right text-xs font-medium leading-4 text-slate-700 dark:text-slate-300 max-[359px]:hidden">
-            Use your assigned credentials
-          </span>
+          <Link className="text-xs font-semibold text-[#078f83] hover:text-[#066d65] hover:underline dark:text-teal-300" href="/forgot-password">Forgot password?</Link>
         </div>
         <div className="relative">
           <Input
             aria-describedby={form.formState.errors.password ? "login-password-error" : undefined}
             aria-invalid={Boolean(form.formState.errors.password)}
             autoComplete="current-password"
-            className="h-12 rounded-xl border-[#d7e4eb] bg-white px-4 pr-12 text-[#17324d] shadow-none placeholder:text-[#8a9aac] focus-visible:border-[#149b91] focus-visible:ring-[#149b91]/20 dark:border-slate-600 dark:bg-[#102837] dark:text-white"
+            className="h-13 rounded-xl border-[#d7e4eb] bg-white px-4 pr-12 text-[#17324d] shadow-none placeholder:text-[#8a9aac] focus-visible:border-[#149b91] focus-visible:ring-[#149b91]/20 dark:border-slate-600 dark:bg-[#102837] dark:text-white"
             id="password"
             placeholder="Enter your password"
             type={showPassword ? "text" : "password"}
@@ -126,7 +121,7 @@ export function LoginForm() {
         <FormError id="login-password-error" message={form.formState.errors.password?.message} />
       </div>
 
-      <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300">
+      <div className="flex items-center gap-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
         <LockKeyhole
           className="size-3.5 shrink-0 text-teal-700 dark:text-teal-300"
           aria-hidden="true"
@@ -136,14 +131,13 @@ export function LoginForm() {
 
       <Button
         aria-busy={isPending}
-        className="h-12 w-full rounded-xl bg-[#0f766e] text-sm text-white shadow-[0_12px_28px_-16px_rgba(15,118,110,0.9)] transition-[background-color,box-shadow] hover:bg-[#115e59] hover:shadow-[0_16px_32px_-18px_rgba(15,118,110,0.95)] motion-reduce:transition-none"
+        className="h-13 w-full rounded-xl bg-[#078f83] text-sm font-extrabold text-white shadow-[0_14px_30px_-16px_rgba(7,143,131,0.9)] transition-[background-color,box-shadow,transform] hover:-translate-y-0.5 hover:bg-[#087b72] hover:shadow-[0_18px_34px_-18px_rgba(7,143,131,0.95)] motion-reduce:transform-none motion-reduce:transition-none"
         disabled={isPending}
         type="submit"
       >
         {isPending ? "Signing in..." : "Sign in"}
         {!isPending && <ArrowRight className="size-4" aria-hidden="true" />}
       </Button>
-      <div className="text-center"><Link className="text-sm font-semibold text-teal-800 dark:text-teal-300" href="/forgot-password">Forgot password?</Link></div>
     </form>
   );
 }

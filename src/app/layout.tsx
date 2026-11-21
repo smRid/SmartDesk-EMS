@@ -5,7 +5,8 @@ import "./globals.css";
 const themeInitScript = `
 (() => {
   try {
-    const theme = window.localStorage.getItem("smartdesk-theme") === "dark" ? "dark" : "light";
+    const storedTheme = window.localStorage.getItem("smartdesk-theme");
+    const theme = storedTheme === "light" ? "light" : "dark";
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.dataset.theme = theme;
     document.body?.classList.toggle("dark", theme === "dark");
@@ -13,11 +14,21 @@ const themeInitScript = `
       document.body.dataset.theme = theme;
     }
   } catch (_) {
-    document.documentElement.dataset.theme = "light";
+    document.documentElement.classList.add("dark");
+    document.documentElement.dataset.theme = "dark";
     if (document.body) {
-      document.body.dataset.theme = "light";
+      document.body.classList.add("dark");
+      document.body.dataset.theme = "dark";
     }
   }
+})();
+`;
+
+const bodyThemeSyncScript = `
+(() => {
+  const isDark = document.documentElement.dataset.theme !== "light";
+  document.body.classList.toggle("dark", isDark);
+  document.body.dataset.theme = isDark ? "dark" : "light";
 })();
 `;
 
@@ -38,19 +49,20 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className="h-full bg-shell antialiased"
+      className="dark h-full bg-shell antialiased"
       data-scroll-behavior="smooth"
-      data-theme="light"
+      data-theme="dark"
       suppressHydrationWarning
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body
-        className="flex min-h-full flex-col bg-shell font-sans text-slate-900"
-        data-theme="light"
+        className="dark flex min-h-full flex-col bg-shell font-sans text-slate-900"
+        data-theme="dark"
         suppressHydrationWarning
       >
+        <script dangerouslySetInnerHTML={{ __html: bodyThemeSyncScript }} />
         {children}
         <ToasterProvider />
       </body>
