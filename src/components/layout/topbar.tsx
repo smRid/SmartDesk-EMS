@@ -29,13 +29,12 @@ function getRouteContext(pathname: string, items: NavItem[]) {
   ];
   return {
     crumbs,
-    title: remainder.length ? humanizeSegment(remainder.at(-1) ?? "") : root.label,
   };
 }
 
 export function Topbar({ items, mobileMenuOpen, onMobileMenuOpen, session }: { items: NavItem[]; mobileMenuOpen: boolean; onMobileMenuOpen: () => void; session: SessionUser }) {
   const pathname = usePathname();
-  const { crumbs, title } = getRouteContext(pathname, items);
+  const { crumbs } = getRouteContext(pathname, items);
   const [profileOpen, setProfileOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
@@ -86,7 +85,6 @@ export function Topbar({ items, mobileMenuOpen, onMobileMenuOpen, session }: { i
               );
             })}
           </div>
-          <p className="truncate text-base font-extrabold tracking-tight text-slate-950 dark:text-white sm:mt-0.5">{title}</p>
         </div>
 
         <ThemeToggle className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" compact />

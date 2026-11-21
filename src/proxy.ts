@@ -17,7 +17,6 @@ export async function proxy(request: NextRequest) {
     const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
     const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"], audience: "smartdesk-ems", issuer: "smartdesk-ems" });
     const role = payload.role as string | undefined;
-    if (pathname === "/login") return NextResponse.redirect(new URL(role === "admin" ? "/admin/dashboard" : "/employee/dashboard", request.url));
     if (pathname.startsWith("/admin") && role !== "admin") return NextResponse.redirect(new URL("/forbidden", request.url));
     if (pathname.startsWith("/employee") && role !== "employee") return NextResponse.redirect(new URL("/forbidden", request.url));
     return NextResponse.next();
