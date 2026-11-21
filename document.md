@@ -1290,7 +1290,7 @@ Current behavior:
 
 Recommended future improvements:
 
-- add file size limits in UI
+- mirror the server-side 5 MB limit in the browser before upload
 - show upload-specific error state
 - add retry option for upload failures
 
@@ -1312,12 +1312,15 @@ Current control points:
 - env validation prevents app boot with missing config
 - build and migration commands reveal setup failures
 - server actions stop and return failure if operation cannot proceed
+- global and route-level error boundaries provide recoverable UI
+- `/api/health` checks database reachability and required security tables
+- Next.js instrumentation emits structured JSON request-failure events
+- logging redacts sensitive keys, bearer values, and embedded SQL parameters
 
 Recommended future improvements:
 
-- add centralized logger
-- add error boundary pages
-- add monitoring using Vercel or third-party observability
+- connect structured logs and traces to a durable observability provider
+- define alert thresholds for request failures and degraded health checks
 - add retry or fallback behavior for external services
 
 
@@ -1518,23 +1521,26 @@ Production caution:
 
 Current limitations:
 
-- no forgot password email flow
-- no advanced analytics charts beyond summary blocks
-- no attendance module
-- no PDF payroll export
-- no external logging service
-- no advanced pagination yet
+- the configured deployment database must have migrations through `0004` applied before authentication is release-ready
+- no durable external log/trace sink or production alert thresholds
+- no MFA, device/session inventory, or managed authentication provider
+- no manager/reporting-line authorization scope beyond admin and employee
+- no private employee-document storage or protected retention workflow
+- no notification center or transactional leave/attendance notifications
+- no isolated test database is bundled; integration and destructive E2E tests require operator-supplied test infrastructure
+- full production query-plan evidence, Lighthouse budgets, and database restore rehearsal remain deployment tasks
 
 Recommended next upgrades:
 
-- attendance management
-- payroll PDF download
+- complete the Phase 11 migration, isolated E2E, monitoring, and restore gates
+- pilot versioned onboarding/offboarding checklists
+- design effective-dated reporting lines and narrowly scoped manager permissions
+- evaluate asset assignment after the lifecycle pilot
 - notification center
 - email alert for leave decision
 - audit log dashboard
-- stronger rate limiting with durable storage
-- role-based permission matrix beyond admin and employee
-- archive and restore for deactivated employees
+- defer expenses, employee documents, and performance reviews until policy/privacy prerequisites are approved
+- defer a generic workflow builder until multiple stable workflows demonstrate reusable requirements
 
 
 ======================================================================
@@ -1577,6 +1583,26 @@ Open Drizzle Studio:
 
 - npm run db:studio
 
+Run the complete non-browser quality gate:
+
+- npm run quality
+
+Run unit tests:
+
+- npm test
+
+Run isolated database integration tests:
+
+- npm run test:integration
+
+Run safe public browser smoke tests:
+
+- npm run test:e2e:smoke
+
+Run all configured Playwright journeys:
+
+- npm run test:e2e
+
 
 ======================================================================
 19. FINAL SUMMARY
@@ -1593,6 +1619,10 @@ Its strongest implementation points are:
 - proper relational schema design
 - migration and seed support
 - business-rule enforcement for departments, employees, leave, and salary
+- trusted attendance, correction, and shift workflows
+- private on-demand payslip generation with object-level authorization
+- durable authentication throttling, account recovery, and session revocation
+- automated quality gates, health reporting, and structured redacted logging
 
 This project can be maintained safely by following the documented command
 flow, schema migration process, and operational rules defined above.
@@ -1610,5 +1640,19 @@ For daily usage:
 The project now includes unit tests, an isolated PostgreSQL integration test, Playwright smoke and role/workflow suites, global error and not-found pages, a database-aware health endpoint, and structured redacted server logging through Next.js instrumentation.
 
 Use `npm run quality` for the non-browser quality gates and `npm run test:e2e` for browser journeys. Database-mutating browser tests are disabled unless an operator explicitly confirms an isolated test database. See `docs/release-readiness.md` for environment requirements, the verified behavior matrix, deployment sequence, rollback/restore procedure, performance notes, and remaining release decisions.
+
+## Phase 12 product discovery
+
+Phase 12 is a discovery roadmap only; none of its proposed business capabilities have been implemented. The assessment ranks onboarding/offboarding checklists first, followed by the reporting-line and manager-authorization foundation, then asset assignment. Expense claims, private employee documents, and performance reviews remain gated by named policy, privacy, retention, and operational prerequisites. A generic approval workflow builder is explicitly deferred until several stable domain workflows demonstrate reusable requirements.
+
+The detailed discovery record in `docs/phase-12-product-discovery.md` contains:
+
+- impact, cost, privacy/compliance risk, and dependency rankings
+- user stories and conceptual additive schemas
+- proposed route and permission maps
+- feature-specific and cross-feature acceptance criteria
+- staged rollout gates and an approval record template
+
+No Phase 12 schema, migration, route, role, or feature flag should be created until the relevant capability receives recorded business, data-owner, security, and privacy approval.
 
 End of document.
